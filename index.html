@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Mực & Giấy Admin — HSK</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Serif+SC:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --paper:#FAF6EF;--paper-deep:#F3EDE1;--ink:#26221C;--ink-soft:#6B6357;--ink-faint:#A89F90;
+  --hairline:#E5DCC9;--seal:#C73E2E;--seal-deep:#A33225;--jade:#35705F;--jade-fill:#3E8A74;
+  --jade-tint:#E9F2EE;--amber:#8F6409;--amber-tint:#F5ECD9;--slate:#5B6770;--slate-tint:#EEF0F2;--red-bg:#F7E5E1;
+  --sidebar-w:260px;
+}
+body{font-family:'Inter',sans-serif;background:var(--paper);color:var(--ink);line-height:1.6;overflow-x:hidden}
+.hanzi{font-family:'Noto Serif SC',serif}
+
+/* Sidebar */
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:var(--sidebar-w);background:var(--paper-deep);border-right:1px solid var(--hairline);z-index:100;display:flex;flex-direction:column;transition:transform .3s}
+.sidebar-logo{padding:24px 20px;font-family:'Noto Serif SC',serif;font-size:20px;font-weight:700;color:var(--ink);border-bottom:1px solid var(--hairline);letter-spacing:1px}
+.sidebar-logo span{color:var(--ink-faint);font-family:'Inter',sans-serif;font-size:13px;font-weight:500;display:block;margin-top:2px;letter-spacing:0}
+.sidebar-nav{flex:1;padding:12px 10px;display:flex;flex-direction:column;gap:2px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:500;color:var(--ink-soft);transition:all .15s;text-decoration:none;border:none;background:none;width:100%;text-align:left}
+.nav-item:hover{background:var(--jade-tint);color:var(--jade-fill)}
+.nav-item.active{background:var(--jade);color:#fff}
+.nav-icon{font-size:18px;width:24px;text-align:center}
+
+/* Main */
+.main{margin-left:var(--sidebar-w);padding:28px 32px;min-height:100vh}
+
+/* Top bar mobile */
+.topbar{display:none;position:sticky;top:0;z-index:90;background:var(--paper);padding:12px 16px;border-bottom:1px solid var(--hairline);align-items:center;gap:10px}
+.menu-btn{background:none;border:none;font-size:24px;cursor:pointer;color:var(--ink)}
+.page-title{font-size:20px;font-weight:700;color:var(--ink)}
+
+/* Page */
+.page{display:none}
+.page.active{display:block}
+
+/* Cards */
+.card{background:#fff;border:1px solid var(--hairline);border-radius:10px;padding:20px}
+.card-title{font-size:15px;font-weight:600;color:var(--ink-soft);margin-bottom:16px}
+
+/* KPI Grid */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px}
+.kpi-card{background:#fff;border:1px solid var(--hairline);border-radius:10px;padding:20px}
+.kpi-label{font-size:13px;color:var(--ink-faint);font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+.kpi-value{font-size:32px;font-weight:700;color:var(--ink);margin-top:4px}
+.kpi-card.jade .kpi-value{color:var(--jade-fill)}
+.kpi-card.amber .kpi-value{color:var(--amber)}
+.kpi-card.seal .kpi-value{color:var(--seal)}
+.kpi-card.slate .kpi-value{color:var(--slate)}
+
+/* Charts */
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px}
+.chart-wrap{background:#fff;border:1px solid var(--hairline);border-radius:10px;padding:20px}
+.chart-wrap.full{grid-column:1/-1}
+
+/* Table */
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px}
+.toolbar input,.toolbar select{padding:8px 12px;border:1px solid var(--hairline);border-radius:6px;font-size:13px;background:var(--paper);color:var(--ink);font-family:'Inter',sans-serif}
+.toolbar input:focus,.toolbar select:focus{outline:none;border-color:var(--jade-fill)}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;font-family:'Inter',sans-serif}
+.btn-jade{background:var(--jade);color:#fff}
+.btn-jade:hover{background:var(--jade-fill)}
+.btn-seal{background:var(--seal);color:#fff}
+.btn-seal:hover{background:var(--seal-deep)}
+.btn-ghost{background:transparent;color:var(--ink-soft);border:1px solid var(--hairline)}
+.btn-ghost:hover{background:var(--paper-deep)}
+.btn-sm{padding:4px 10px;font-size:12px}
+.table-wrap{overflow-x:auto;background:#fff;border:1px solid var(--hairline);border-radius:10px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead{background:var(--paper-deep)}
+th{text-align:left;padding:10px 14px;font-weight:600;color:var(--ink-soft);font-size:12px;text-transform:uppercase;letter-spacing:.3px;white-space:nowrap}
+td{padding:10px 14px;border-top:1px solid var(--hairline);vertical-align:middle}
+tr:hover td{background:var(--jade-tint)}
+
+/* Badges */
+.badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.badge-hsk{background:var(--amber-tint);color:var(--amber)}
+.badge-new{background:var(--red-bg);color:var(--seal)}
+.badge-reviewing{background:var(--amber-tint);color:var(--amber)}
+.badge-master{background:var(--jade-tint);color:var(--jade-fill)}
+
+/* Pagination */
+.pagination{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:16px}
+.page-btn{padding:6px 12px;border:1px solid var(--hairline);border-radius:6px;background:#fff;cursor:pointer;font-size:13px;color:var(--ink-soft)}
+.page-btn:hover{background:var(--jade-tint)}
+.page-btn.active{background:var(--jade);color:#fff;border-color:var(--jade)}
+.page-btn:disabled{opacity:.4;cursor:default}
+
+/* Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--paper);border-radius:12px;padding:28px;width:90%;max-width:500px;max-height:90vh;overflow-y:auto;border:1px solid var(--hairline)}
+.modal h3{font-size:18px;font-weight:700;margin-bottom:20px;color:var(--ink)}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:13px;font-weight:600;color:var(--ink-soft);margin-bottom:4px}
+.form-group input,.form-group select,.form-group textarea{width:100%;padding:9px 12px;border:1px solid var(--hairline);border-radius:6px;font-size:14px;background:#fff;color:var(--ink);font-family:'Inter',sans-serif}
+.form-group textarea{min-height:100px;resize:vertical}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:24px}
+
+/* Tabs */
+.tabs{display:flex;gap:0;border-bottom:2px solid var(--hairline);margin-bottom:20px}
+.tab{padding:10px 20px;cursor:pointer;font-size:14px;font-weight:500;color:var(--ink-faint);border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s;background:none;border-top:none;border-left:none;border-right:none;font-family:'Inter',sans-serif}
+.tab:hover{color:var(--ink-soft)}
+.tab.active{color:var(--jade-fill);border-bottom-color:var(--jade-fill)}
+.tab-content{display:none}
+.tab-content.active{display:block}
+
+/* Preview table for import */
+.preview-table{max-height:300px;overflow:auto;border:1px solid var(--hairline);border-radius:8px;margin:16px 0}
+.mapping-row{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin:12px 0;font-size:13px}
+.mapping-row label{font-weight:600;color:var(--ink-soft);min-width:80px}
+.mapping-row select{padding:6px 10px;border:1px solid var(--hairline);border-radius:6px;background:#fff;font-size:13px}
+
+/* Dynamic form rows */
+.form-rows{display:flex;flex-direction:column;gap:8px;max-height:400px;overflow-y:auto;padding:8px 0}
+.form-row{display:grid;grid-template-columns:1fr 1fr 1.5fr .8fr auto;gap:6px;align-items:center}
+.form-row input{padding:8px 10px;border:1px solid var(--hairline);border-radius:6px;font-size:13px;background:#fff;color:var(--ink);font-family:'Inter',sans-serif}
+.form-row input.hanzi-input{font-family:'Noto Serif SC',serif;font-size:16px}
+.remove-row-btn{width:30px;height:30px;border:none;background:var(--red-bg);color:var(--seal);border-radius:6px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
+
+/* Toast */
+#toastContainer{position:fixed;top:20px;right:20px;z-index:999;display:flex;flex-direction:column;gap:8px}
+.toast{padding:12px 20px;border-radius:8px;font-size:13px;font-weight:500;color:#fff;animation:slideIn .3s ease;box-shadow:0 4px 12px rgba(0,0,0,.15)}
+.toast-success{background:var(--jade-fill)}
+.toast-error{background:var(--seal)}
+@keyframes slideIn{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
+
+/* Confirm dialog */
+.confirm-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:300;align-items:center;justify-content:center}
+.confirm-overlay.open{display:flex}
+.confirm-box{background:var(--paper);border-radius:12px;padding:28px;width:90%;max-width:400px;text-align:center;border:1px solid var(--hairline)}
+.confirm-box p{margin-bottom:20px;font-size:15px;color:var(--ink)}
+.confirm-actions{display:flex;gap:10px;justify-content:center}
+
+/* Responsive */
+@media(max-width:768px){
+  .sidebar{transform:translateX(-100%)}
+  .sidebar.open{transform:translateX(0)}
+  .main{margin-left:0;padding:16px}
+  .topbar{display:flex}
+  .charts-grid{grid-template-columns:1fr}
+  .kpi-grid{grid-template-columns:1fr 1fr}
+  .form-row{grid-template-columns:1fr 1fr;gap:8px}
+  .form-row input:first-child{grid-column:1/-1}
+}
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">墨纸<span>Mực & Giấy Admin</span></div>
+  <nav class="sidebar-nav">
+    <button class="nav-item active" data-page="dashboard"><span class="nav-icon">📊</span>Dashboard</button>
+    <button class="nav-item" data-page="sessions"><span class="nav-icon">📖</span>Sessions</button>
+    <button class="nav-item" data-page="vocabulary"><span class="nav-icon">📝</span>Từ vựng</button>
+    <button class="nav-item" data-page="import"><span class="nav-icon">📥</span>Import</button>
+  </nav>
+</aside>
+
+<!-- Top bar (mobile) -->
+<div class="topbar">
+  <button class="menu-btn" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
+  <span class="page-title" id="topbarTitle">Dashboard</span>
+</div>
+
+<!-- Main -->
+<div class="main" id="mainContent">
+
+  <!-- Dashboard -->
+  <div class="page active" id="page-dashboard">
+    <div class="kpi-grid" id="kpiGrid"></div>
+    <div class="charts-grid">
+      <div class="chart-wrap full">
+        <div class="card-title">Số từ mỗi Session <select id="dashHskFilter" style="margin-left:10px;padding:4px 8px;border:1px solid var(--hairline);border-radius:4px;font-size:12px"><option value="">Tất cả HSK</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></div>
+        <canvas id="barChart"></canvas>
+      </div>
+      <div class="chart-wrap">
+        <div class="card-title">Phân bố trạng thái ôn tập</div>
+        <canvas id="doughnutChart"></canvas>
+      </div>
+      <div class="chart-wrap">
+        <div class="card-title">Từ mới theo tháng</div>
+        <canvas id="lineChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sessions -->
+  <div class="page" id="page-sessions">
+    <div class="toolbar">
+      <input type="text" id="sessionSearch" placeholder="Tìm session..." style="min-width:200px">
+      <select id="sessionHskFilter"><option value="">Tất cả HSK</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select>
+      <button class="btn btn-jade" onclick="openSessionModal()">+ Thêm mới</button>
+    </div>
+    <div class="table-wrap"><table><thead><tr><th>ID</th><th>Title</th><th>HSK</th><th>Số từ</th><th>Ngày tạo</th><th></th></tr></thead><tbody id="sessionsTbody"></tbody></table></div>
+    <div class="pagination" id="sessionsPagination"></div>
+  </div>
+
+  <!-- Vocabulary -->
+  <div class="page" id="page-vocabulary">
+    <div class="toolbar">
+      <select id="vocabHskFilter"><option value="">Tất cả HSK</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select>
+      <select id="vocabSessionFilter"><option value="">Tất cả Sessions</option></select>
+      <input type="text" id="vocabHanziSearch" placeholder="Tìm Hán tự..." style="min-width:120px">
+      <input type="text" id="vocabMeaningSearch" placeholder="Tìm nghĩa..." style="min-width:120px">
+      <select id="vocabStatusFilter"><option value="">Tất cả trạng thái</option><option value="0">Mới</option><option value="1">Đang ôn</option><option value="2">Master</option></select>
+      <button class="btn btn-jade" onclick="openVocabModal()">+ Thêm mới</button>
+    </div>
+    <div class="table-wrap"><table><thead><tr><th>ID</th><th>Hán tự</th><th>Pinyin</th><th>Từ loại</th><th>Nghĩa</th><th>HSK</th><th>Session</th><th>Trạng thái</th><th>Lần ôn</th><th></th></tr></thead><tbody id="vocabTbody"></tbody></table></div>
+    <div class="pagination" id="vocabPagination"></div>
+  </div>
+
+  <!-- Import -->
+  <div class="page" id="page-import">
+    <div class="card">
+      <div class="tabs">
+        <button class="tab active" data-tab="tabFile">📁 Upload CSV/XLSX</button>
+        <button class="tab" data-tab="tabPaste">📋 Paste văn bản</button>
+        <button class="tab" data-tab="tabForm">✏️ Nhập tay</button>
+      </div>
+
+      <div class="tab-content active" id="tabFile">
+        <input type="file" id="importFile" accept=".csv,.xlsx,.xls" style="margin-bottom:12px">
+        <div class="preview-table" id="filePreview" style="display:none"></div>
+        <div class="mapping-row" id="fileMapping" style="display:none">
+          <label>Hán tự:</label><select id="mapHanzi"></select>
+          <label>Pinyin:</label><select id="mapPinyin"></select>
+          <label>Nghĩa:</label><select id="mapMeaning"></select>
+          <label>Loại:</label><select id="mapType"><option value="">— bỏ qua —</option></select>
+          <label>Session:</label><select id="mapSession"></select>
+          <button class="btn btn-jade" onclick="importFileData()">Import</button>
+        </div>
+      </div>
+
+      <div class="tab-content" id="tabPaste">
+        <textarea id="pasteArea" placeholder="Dán dữ liệu tại đây...&#10;Mỗi dòng một từ, phân cách bởi dấu phẩy/tab/chấm phẩy&#10;Ví dụ: 你好,nǐhǎo,Xin chào"></textarea>
+        <div class="preview-table" id="pastePreview" style="display:none"></div>
+        <div class="mapping-row" id="pasteMapping" style="display:none">
+          <label>Hán tự:</label><select id="pmapHanzi"></select>
+          <label>Pinyin:</label><select id="pmapPinyin"></select>
+          <label>Nghĩa:</label><select id="pmapMeaning"></select>
+          <label>Loại:</label><select id="pmapType"><option value="">— bỏ qua —</option></select>
+          <label>Session:</label><select id="pmapSession"></select>
+          <button class="btn btn-jade" onclick="importPasteData()">Import</button>
+        </div>
+      </div>
+
+      <div class="tab-content" id="tabForm">
+        <div style="margin-bottom:12px;display:flex;gap:10px;align-items:center">
+          <label>Session:</label><select id="formSession"></select>
+          <button class="btn btn-ghost" onclick="addFormRow()">+ Thêm dòng</button>
+        </div>
+        <div class="form-rows" id="formRows"></div>
+        <div style="margin-top:16px"><button class="btn btn-jade" onclick="importFormData()">Import tất cả</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Session Modal -->
+<div class="modal-overlay" id="sessionModal">
+  <div class="modal">
+    <h3 id="sessionModalTitle">Thêm Session</h3>
+    <input type="hidden" id="sessionEditId">
+    <div class="form-group"><label>Title</label><input id="sessionTitleInput" placeholder="Tên session"></div>
+    <div class="form-group"><label>HSK Level</label><select id="sessionHskInput"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('sessionModal')">Hủy</button>
+      <button class="btn btn-jade" onclick="saveSession()">Lưu</button>
+    </div>
+  </div>
+</div>
+
+<!-- Vocab Modal -->
+<div class="modal-overlay" id="vocabModal">
+  <div class="modal">
+    <h3 id="vocabModalTitle">Thêm Từ vựng</h3>
+    <input type="hidden" id="vocabEditId">
+    <div class="form-group"><label>Hán tự</label><input id="vocabHanziInput" class="hanzi" placeholder="你好" style="font-family:'Noto Serif SC',serif;font-size:20px"></div>
+    <div class="form-group"><label>Pinyin</label><input id="vocabPinyinInput" placeholder="nǐhǎo" style="font-style:italic"></div>
+    <div class="form-group"><label>Loại từ (tùy chọn)</label><input id="vocabTypeInput" placeholder="danh từ, động từ..."></div>
+    <div class="form-group"><label>Nghĩa</label><input id="vocabMeaningInput" placeholder="Xin chào"></div>
+    <div class="form-group"><label>Session</label><select id="vocabSessionInput"></select></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('vocabModal')">Hủy</button>
+      <button class="btn btn-jade" onclick="saveVocab()">Lưu</button>
+    </div>
+  </div>
+</div>
+
+<!-- Confirm -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <p id="confirmMsg">Bạn có chắc?</p>
+    <div class="confirm-actions">
+      <button class="btn btn-ghost" onclick="confirmAction(false)">Hủy</button>
+      <button class="btn btn-seal" onclick="confirmAction(true)">Xóa</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toasts -->
+<div id="toastContainer"></div>
+
+<script>
+// ===== CONFIG =====
+const SUPABASE_URL = 'https://qthuomifuzyrzhgcsedx.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF0aHVvbWlmdXp5cnpoZ2NzZWR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcxNjEyNTUsImV4cCI6MjEwMjczNzI1NX0.47yUgABy8oaXYsMNYCC5UPqBkQVORJvf5VDa6wnBlwo';
+const headers = {
+  'apikey': SUPABASE_ANON_KEY,
+  'Authorization': 'Bearer ' + SUPABASE_ANON_KEY,
+  'Content-Type': 'application/json',
+  'Prefer': 'return=representation'
+};
+
+// ===== HELPERS =====
+let _confirmCb = null;
+function showConfirm(msg, cb) {
+  document.getElementById('confirmMsg').textContent = msg;
+  document.getElementById('confirmOverlay').classList.add('open');
+  _confirmCb = cb;
+}
+function confirmAction(yes) {
+  document.getElementById('confirmOverlay').classList.remove('open');
+  if (_confirmCb) { _confirmCb(yes); _confirmCb = null; }
+}
+
+function toast(msg, type='success') {
+  const el = document.createElement('div');
+  el.className = 'toast toast-' + type;
+  el.textContent = msg;
+  document.getElementById('toastContainer').appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function formatDate(d) {
+  if (!d) return '—';
+  const dt = new Date(d);
+  return dt.toLocaleDateString('vi-VN') + ' ' + dt.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'});
+}
+
+function statusBadge(s) {
+  if (s === 0) return '<span class="badge badge-new">Mới</span>';
+  if (s === 1) return '<span class="badge badge-reviewing">Đang ôn</span>';
+  return '<span class="badge badge-master">Master</span>';
+}
+
+// ===== SUPABASE =====
+async function sbFetch(table, opts={}) {
+  const url = new URL(SUPABASE_URL + '/rest/v1/' + table);
+  if (opts.select) url.searchParams.set('select', opts.select);
+  if (opts.order) url.searchParams.set('order', opts.order);
+  if (opts.filter) { for (const [k,v] of Object.entries(opts.filter)) url.searchParams.set(k, v); }
+  const resp = await fetch(url, {
+    headers,
+    method: opts.method || 'GET',
+    body: opts.body ? JSON.stringify(opts.body) : undefined
+  });
+  if (!resp.ok) {
+    const err = await resp.text();
+    throw new Error('HTTP ' + resp.status + ': ' + err);
+  }
+  return await resp.json();
+}
+
+// ===== NAVIGATION =====
+let currentPage = 'dashboard';
+let allSessions = [];
+let allVocab = [];
+
+const pageTitles = { dashboard:'Dashboard', sessions:'Sessions', vocabulary:'Từ vựng', import:'Import' };
+
+function navigateTo(page) {
+  currentPage = page;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.page === page));
+  document.getElementById('topbarTitle').textContent = pageTitles[page] || page;
+  document.getElementById('sidebar').classList.remove('open');
+  if (page === 'dashboard') loadDashboard();
+  else if (page === 'sessions') loadSessions();
+  else if (page === 'vocabulary') loadVocabulary();
+  else if (page === 'import') loadImportPage();
+}
+
+document.querySelectorAll('.nav-item').forEach(btn => {
+  btn.addEventListener('click', () => navigateTo(btn.dataset.page));
+});
+
+// Tabs
+function initTabs() {
+  document.querySelectorAll('.tabs').forEach(tabBar => {
+    const tabs = tabBar.querySelectorAll('.tab');
+    const parent = tabBar.parentElement;
+    tabs.forEach(t => {
+      t.addEventListener('click', () => {
+        tabs.forEach(x => x.classList.remove('active'));
+        t.classList.add('active');
+        parent.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        parent.querySelector('#' + t.dataset.tab).classList.add('active');
+      });
+    });
+  });
+}
+
+// ===== DASHBOARD =====
+let barChartInst, doughnutInst, lineChartInst;
+
+async function loadDashboard() {
+  try {
+    allSessions = await sbFetch('sessions', { select: 'id,title,hsk_level', order: 'created_at.desc' });
+    allVocab = await sbFetch('vocabulary', { select: 'id,session_id,hanzi,pinyin,meaning,review_status,created_at', order: 'created_at.desc' });
+
+    // KPI
+    const totalSessions = allSessions.length;
+    const totalVocab = allVocab.length;
+    const mastered = allVocab.filter(v => v.review_status === 2).length;
+    const reviewing = allVocab.filter(v => v.review_status === 1).length;
+    const pctMaster = totalVocab ? Math.round(mastered / totalVocab * 100) : 0;
+    const pctReview = totalVocab ? Math.round(reviewing / totalVocab * 100) : 0;
+
+    document.getElementById('kpiGrid').innerHTML = `
+      <div class="kpi-card jade"><div class="kpi-label">Tổng Sessions</div><div class="kpi-value">${totalSessions}</div></div>
+      <div class="kpi-card amber"><div class="kpi-label">Tổng Từ vựng</div><div class="kpi-value">${totalVocab}</div></div>
+      <div class="kpi-card seal"><div class="kpi-label">% Mastered</div><div class="kpi-value">${pctMaster}%</div></div>
+      <div class="kpi-card slate"><div class="kpi-label">% Đang ôn</div><div class="kpi-value">${pctReview}%</div></div>
+    `;
+
+    // Bar chart - words per session
+    const hskFilter = document.getElementById('dashHskFilter').value;
+    let filteredSessions = allSessions;
+    if (hskFilter) filteredSessions = allSessions.filter(s => s.hsk_level == hskFilter);
+    const sessionLabels = filteredSessions.map(s => s.title || ('Session ' + s.id));
+    const sessionCounts = filteredSessions.map(s => allVocab.filter(v => v.session_id === s.id).length);
+
+    if (barChartInst) barChartInst.destroy();
+    barChartInst = new Chart(document.getElementById('barChart'), {
+      type: 'bar',
+      data: {
+        labels: sessionLabels,
+        datasets: [{ label: 'Số từ', data: sessionCounts, backgroundColor: '#35705F', borderRadius: 4 }]
+      },
+      options: { responsive: true, plugins: { legend: { display: false } } }
+    });
+
+    // Doughnut
+    const newCount = allVocab.filter(v => v.review_status === 0).length;
+    if (doughnutInst) doughnutInst.destroy();
+    doughnutInst = new Chart(document.getElementById('doughnutChart'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Mới', 'Đang ôn', 'Master'],
+        datasets: [{ data: [newCount, reviewing, mastered], backgroundColor: ['#C73E2E', '#8F6409', '#35705F'] }]
+      },
+      options: { responsive: true }
+    });
+
+    // Line chart - new words by month
+    const monthMap = {};
+    allVocab.forEach(v => {
+      const m = (v.created_at || '').substring(0, 7);
+      if (m) monthMap[m] = (monthMap[m] || 0) + 1;
+    });
+    const months = Object.keys(monthMap).sort();
+    if (lineChartInst) lineChartInst.destroy();
+    lineChartInst = new Chart(document.getElementById('lineChart'), {
+      type: 'line',
+      data: {
+        labels: months,
+        datasets: [{ label: 'Từ mới', data: months.map(m => monthMap[m]), borderColor: '#35705F', backgroundColor: '#E9F2EE', fill: true, tension: .3 }]
+      },
+      options: { responsive: true, plugins: { legend: { display: false } } }
+    });
+
+  } catch (e) { toast('Lỗi load dashboard: ' + e.message, 'error'); }
+}
+
+document.getElementById('dashHskFilter').addEventListener('change', loadDashboard);
+
+// ===== SESSIONS =====
+let sessPage = 1;
+const SESS_PER_PAGE = 20;
+
+async function loadSessions() {
+  try {
+    allSessions = await sbFetch('sessions', { select: 'id,title,hsk_level,created_at', order: 'created_at.desc' });
+    allVocab = await sbFetch('vocabulary', { select: 'id,session_id' });
+    renderSessionsTable();
+  } catch (e) { toast('Lỗi: ' + e.message, 'error'); }
+}
+
+function getFilteredSessions() {
+  const q = document.getElementById('sessionSearch').value.toLowerCase();
+  const hsk = document.getElementById('sessionHskFilter').value;
+  return allSessions.filter(s => {
+    if (q && !(s.title || '').toLowerCase().includes(q)) return false;
+    if (hsk && s.hsk_level != hsk) return false;
+    return true;
+  });
+}
+
+function renderSessionsTable() {
+  const filtered = getFilteredSessions();
+  const total = Math.ceil(filtered.length / SESS_PER_PAGE);
+  if (sessPage > total) sessPage = total || 1;
+  const start = (sessPage - 1) * SESS_PER_PAGE;
+  const page = filtered.slice(start, start + SESS_PER_PAGE);
+
+  const tbody = document.getElementById('sessionsTbody');
+  tbody.innerHTML = page.map(s => {
+    const cnt = allVocab.filter(v => v.session_id === s.id).length;
+    return `<tr style="cursor:pointer" onclick="openSessionModal(${s.id})">
+      <td>${s.id}</td>
+      <td><strong>${s.title || ''}</strong></td>
+      <td><span class="badge badge-hsk">HSK ${s.hsk_level}</span></td>
+      <td>${cnt}</td>
+      <td>${formatDate(s.created_at)}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openSessionModal(${s.id})">Sửa</button> <button class="btn btn-seal btn-sm" onclick="event.stopPropagation();deleteSession(${s.id})">Xóa</button></td>
+    </tr>`;
+  }).join('');
+
+  renderPagination('sessionsPagination', total, sessPage, p => { sessPage = p; renderSessionsTable(); });
+}
+
+document.getElementById('sessionSearch').addEventListener('input', () => { sessPage = 1; renderSessionsTable(); });
+document.getElementById('sessionHskFilter').addEventListener('change', () => { sessPage = 1; renderSessionsTable(); });
+
+function openSessionModal(id) {
+  const s = id ? allSessions.find(x => x.id === id) : null;
+  document.getElementById('sessionEditId').value = s ? s.id : '';
+  document.getElementById('sessionTitleInput').value = s ? s.title : '';
+  document.getElementById('sessionHskInput').value = s ? s.hsk_level : '1';
+  document.getElementById('sessionModalTitle').textContent = s ? 'Sửa Session' : 'Thêm Session';
+  document.getElementById('sessionModal').classList.add('open');
+}
+
+async function saveSession() {
+  try {
+    const id = document.getElementById('sessionEditId').value;
+    const title = document.getElementById('sessionTitleInput').value.trim();
+    const hsk = parseInt(document.getElementById('sessionHskInput').value);
+    if (!title) { toast('Nhập title!', 'error'); return; }
+    if (id) {
+      await sbFetch('sessions', { method: 'PATCH', filter: { 'id': 'eq.' + id }, body: { title, hsk_level: hsk } });
+      toast('Đã cập nhật');
+    } else {
+      await sbFetch('sessions', { method: 'POST', body: { title, hsk_level: hsk } });
+      toast('Đã thêm');
+    }
+    closeModal('sessionModal');
+    loadSessions();
+  } catch (e) { toast('Lỗi: ' + e.message, 'error'); }
+}
+
+function deleteSession(id) {
+  showConfirm('Xóa session này và toàn bộ từ vựng?', async (yes) => {
+    if (!yes) return;
+    try {
+      await sbFetch('vocabulary', { method: 'DELETE', filter: { 'session_id': 'eq.' + id } });
+      await sbFetch('sessions', { method: 'DELETE', filter: { 'id': 'eq.' + id } });
+      toast('Đã xóa');
+      loadSessions();
+    } catch (e) { toast('Lỗi: ' + e.message, 'error'); }
+  });
+}
+
+// ===== VOCABULARY =====
+let vocabPage = 1;
+const VOCAB_PER_PAGE = 20;
+
+async function loadVocabulary() {
+  try {
+    allSessions = await sbFetch('sessions', { select: 'id,title,hsk_level' });
+    allVocab = await sbFetch('vocabulary', { select: 'id,session_id,hanzi,pinyin,word_type,meaning,review_status,created_at,last_reviewed_at', order: 'created_at.desc' });
+    populateSessionDropdowns();
+    renderVocabTable();
+  } catch (e) { toast('Lỗi: ' + e.message, 'error'); }
+}
+
+function populateSessionDropdowns() {
+  const opts = '<option value="">Tất cả Sessions</option>' + allSessions.map(s => `<option value="${s.id}">${s.title || 'Session ' + s.id}</option>`).join('');
+  ['vocabSessionInput','mapSession','pmapSession','formSession'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = allSessions.map(s => `<option value="${s.id}">${s.title || 'Session ' + s.id}</option>`).join('');
+  });
+  populateVocabFilters();
+}
+
+// Bộ lọc 2 cấp: HSK (cấp 1) -> Session (cấp 2), nhớ lựa chọn qua localStorage
+function populateVocabSessionFilter() {
+  const hsk = document.getElementById('vocabHskFilter').value;
+  const list = hsk ? allSessions.filter(s => s.hsk_level == hsk) : allSessions;
+  document.getElementById('vocabSessionFilter').innerHTML =
+    '<option value="">Tất cả Sessions</option>' +
+    list.map(s => `<option value="${s.id}">${s.title || 'Session ' + s.id}</option>`).join('');
+}
+
+function populateVocabFilters() {
+  const hskEl = document.getElementById('vocabHskFilter');
+  const savedHsk = localStorage.getItem('vocabHskFilter');
+  if (savedHsk && hskEl) hskEl.value = savedHsk;
+  populateVocabSessionFilter();
+  const savedSess = localStorage.getItem('vocabSessionFilter');
+  const sessEl = document.getElementById('vocabSessionFilter');
+  if (savedSess && sessEl) sessEl.value = savedSess;
+}
+
+function getFilteredVocab() {
+  const hsk = document.getElementById('vocabHskFilter').value;
+  const sid = document.getElementById('vocabSessionFilter').value;
+  const hq = document.getElementById('vocabHanziSearch').value.trim();
+  const mq = document.getElementById('vocabMeaningSearch').value.trim();
+  const st = document.getElementById('vocabStatusFilter').value;
+  return allVocab.filter(v => {
+    if (hsk) { const s = allSessions.find(x => x.id === v.session_id); if (!s || s.hsk_level != hsk) return false; }
+    if (sid && v.session_id != sid) return false;
+    if (hq && !v.hanzi.includes(hq)) return false;
+    if (mq && !(v.meaning || '').toLowerCase().includes(mq.toLowerCase())) return false;
+    if (st !== '' && v.review_status != st) return false;
+    return true;
+  });
+}
+
+function renderVocabTable() {
+  const filtered = getFilteredVocab();
+  const total = Math.ceil(filtered.length / VOCAB_PER_PAGE);
+  if (vocabPage > total) vocabPage = total || 1;
+  const start = (vocabPage - 1) * VOCAB_PER_PAGE;
+  const page = filtered.slice(start, start + VOCAB_PER_PAGE);
+
+  const tbody = document.getElementById('vocabTbody');
+  tbody.innerHTML = page.map(v => {
+    const sess = allSessions.find(s => s.id === v.session_id);
+    return `<tr style="cursor:pointer" onclick="openVocabModal(${v.id})">
+      <td>${v.id}</td>
+      <td><span class="hanzi" style="font-size:20px">${v.hanzi}</span></td>
+      <td style="font-style:italic;color:var(--ink-soft)">${v.pinyin}</td>
+      <td>${v.word_type || ''}</td>
+      <td>${v.meaning || ''}</td>
+      <td><span class="badge badge-hsk">HSK ${sess ? sess.hsk_level : '?'}</span></td>
+      <td>${sess ? (sess.title || 'Session ' + sess.id) : '?'}</td>
+      <td>${statusBadge(v.review_status)}</td>
+      <td>${formatDate(v.last_reviewed_at)}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openVocabModal(${v.id})">Sửa</button> <button class="btn btn-seal btn-sm" onclick="event.stopPropagation();deleteVocab(${v.id})">Xóa</button></td>
+    </tr>`;
+  }).join('');
+
+  renderPagination('vocabPagination', total, vocabPage, p => { vocabPage = p; renderVocabTable(); });
+}
+
+document.getElementById('vocabHskFilter').addEventListener('change', () => {
+  localStorage.setItem('vocabHskFilter', document.getElementById('vocabHskFilter').value);
+  document.getElementById('vocabSessionFilter').value = '';
+  localStorage.setItem('vocabSessionFilter', '');
+  populateVocabSessionFilter();
+  vocabPage = 1; renderVocabTable();
+});
+document.getElementById('vocabSessionFilter').addEventListener('change', () => {
+  localStorage.setItem('vocabSessionFilter', document.getElementById('vocabSessionFilter').value);
+  vocabPage = 1; renderVocabTable();
+});
+document.getElementById('vocabHanziSearch').addEventListener('input', () => { vocabPage = 1; renderVocabTable(); });
+document.getElementById('vocabMeaningSearch').addEventListener('input', () => { vocabPage = 1; renderVocabTable(); });
+document.getElementById('vocabStatusFilter').addEventListener('change', () => { vocabPage = 1; renderVocabTable(); });
+
+function openVocabModal(id) {
+  const v = id ? allVocab.find(x => x.id === id) : null;
+  document.getElementById('vocabEditId').value = v ? v.id : '';
+  document.getElementById('vocabHanziInput').value = v ? v.hanzi : '';
+  document.getElementById('vocabPinyinInput').value = v ? v.pinyin : '';
+  document.getElementById('vocabTypeInput').value = v ? (v.word_type || '') : '';
+  document.getElementById('vocabMeaningInput').value = v ? v.meaning : '';
+  document.getElementById('vocabSessionInput').value = v ? v.session_id : '';
+  document.getElementById('vocabModalTitle').textContent = v ? 'Sửa Từ vựng' : 'Thêm Từ vựng';
+  document.getElementById('vocabModal').classList.add('open');
+}
+
+async function saveVocab() {
+  try {
+    const id = document.getElementById('vocabEditId').value;
+    const hanzi = document.getElementById('vocabHanziInput').value.trim();
+    const pinyin = document.getElementById('vocabPinyinInput').value.trim();
+    const word_type = document.getElementById('vocabTypeInput').value.trim() || null;
+    const meaning = document.getElementById('vocabMeaningInput').value.trim();
+    const session_id = parseInt(document.getElementById('vocabSessionInput').value);
+    if (!hanzi || !pinyin || !meaning || !session_id) { toast('Điền đầy đủ Hán tự, Pinyin, Nghĩa, Session!', 'error'); return; }
+    if (id) {
+      await sbFetch('vocabulary', { method: 'PATCH', filter: { 'id': 'eq.' + id }, body: { hanzi, pinyin, word_type, meaning, session_id } });
+      toast('Đã cập nhật');
+    } else {
+      await sbFetch('vocabulary', { method: 'POST', body: { hanzi, pinyin, word_type, meaning, session_id, review_status: 0 } });
+      toast('Đã thêm');
+    }
+    closeModal('vocabModal');
+    loadVocabulary();
+  } catch (e) { toast('Lỗi: ' + e.message, 'error'); }
+}
+
+function deleteVocab(id) {
+  showConfirm('Xóa từ vựng này?', async (yes) => {
+    if (!yes) return;
+    try {
+      await sbFetch('vocabulary', { method: 'DELETE', filter: { 'id': 'eq.' + id } });
+      toast('Đã xóa');
+      loadVocabulary();
+    } catch (e) { toast('Lỗi: ' + e.message, 'error'); }
+  });
+}
+
+// ===== PAGINATION =====
+function renderPagination(containerId, totalPages, current, onChange) {
+  const c = document.getElementById(containerId);
+  if (totalPages <= 1) { c.innerHTML = ''; return; }
+  let html = `<button class="page-btn" ${current<=1?'disabled':''} onclick="void(0)">‹</button>`;
+  for (let i = 1; i <= totalPages; i++) {
+    if (totalPages > 7 && i > 3 && i < totalPages - 1 && Math.abs(i - current) > 1) {
+      if (i === 4 || i === totalPages - 2) html += '<span style="padding:0 4px;color:var(--ink-faint)">…</span>';
+      continue;
+    }
+    html += `<button class="page-btn ${i===current?'active':''}">${i}</button>`;
+  }
+  html += `<button class="page-btn" ${current>=totalPages?'disabled':''} onclick="void(0)">›</button>`;
+  c.innerHTML = html;
+  c.querySelectorAll('.page-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const txt = btn.textContent.trim();
+      let p = current;
+      if (txt === '‹') p = current - 1;
+      else if (txt === '›') p = current + 1;
+      else p = parseInt(txt);
+      if (p >= 1 && p <= totalPages) onChange(p);
+    });
+  });
+}
+
+// ===== IMPORT =====
+let fileParsedRows = [];
+let pasteParsedRows = [];
+
+function loadImportPage() {
+  populateSessionDropdowns();
+  addFormRow();
+  addFormRow();
+  addFormRow();
+}
+
+function setupMapping(selectIds, headers) {
+  const opts = '<option value="">— bỏ qua —</option>' + headers.map(h => `<option value="${h}">${h}</option>`).join('');
+  selectIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = opts;
+  });
+}
+
+function renderPreviewTable(containerId, rows, headers) {
+  const c = document.getElementById(containerId);
+  c.style.display = 'block';
+  c.innerHTML = '<table><thead><tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr></thead><tbody>'
+    + rows.slice(0, 50).map(r => '<tr>' + headers.map(h => `<td>${(r[h] ?? '')}</td>`).join('') + '</tr>').join('')
+    + (rows.length > 50 ? `<tr><td colspan="${headers.length}" style="text-align:center;color:var(--ink-faint)">... và ${rows.length - 50} dòng nữa</td></tr>` : '')
+    + '</tbody></table>';
+}
+
+// File tab
+document.getElementById('importFile').addEventListener('change', function() {
+  const file = this.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(ws);
+      if (!json.length) { toast('File trống!', 'error'); return; }
+      fileParsedRows = json;
+      const headers = Object.keys(json[0]);
+      renderPreviewTable('filePreview', json, headers);
+      setupMapping(['mapHanzi','mapPinyin','mapMeaning','mapType'], headers);
+      document.getElementById('fileMapping').style.display = 'flex';
+    } catch (err) { toast('Lỗi đọc file: ' + err.message, 'error'); }
+  };
+  reader.readAsArrayBuffer(file);
+});
+
+async function importFileData() {
+  await doImport(fileParsedRows, 'mapHanzi', 'mapPinyin', 'mapMeaning', 'mapType', 'mapSession');
+}
+
+// Paste tab
+document.getElementById('pasteArea').addEventListener('input', function() {
+  const text = this.value.trim();
+  if (!text) { document.getElementById('pastePreview').style.display = 'none'; document.getElementById('pasteMapping').style.display = 'none'; return; }
+  let delim = ',';
+  if (text.includes('	')) delim = '	';
+  else if (text.includes(';')) delim = ';';
+  const lines = text.split('\n').filter(l => l.trim());
+  const headers = ['Cột 1','Cột 2','Cột 3','Cột 4','Cột 5'];
+  const rows = lines.map((line, i) => {
+    const cols = line.split(delim);
+    const obj = {};
+    headers.forEach((h, j) => obj[h] = (cols[j] || '').trim());
+    return obj;
+  });
+  pasteParsedRows = rows;
+  renderPreviewTable('pastePreview', rows, headers.slice(0, Math.max(...lines.map(l => l.split(delim).length))));
+  const actualHeaders = headers.slice(0, Math.max(...lines.map(l => l.split(delim).length)));
+  setupMapping(['pmapHanzi','pmapPinyin','pmapMeaning','pmapType'], actualHeaders);
+  document.getElementById('pasteMapping').style.display = 'flex';
+});
+
+async function importPasteData() {
+  await doImport(pasteParsedRows, 'pmapHanzi', 'pmapPinyin', 'pmapMeaning', 'pmapType', 'pmapSession');
+}
+
+// Form tab
+let formRowCount = 0;
+function addFormRow() {
+  formRowCount++;
+  const div = document.createElement('div');
+  div.className = 'form-row';
+  div.dataset.idx = formRowCount;
+  div.innerHTML = `
+    <input class="hanzi-input" placeholder="Hán tự" data-field="hanzi">
+    <input placeholder="Pinyin" data-field="pinyin" style="font-style:italic">
+    <input placeholder="Nghĩa" data-field="meaning">
+    <input placeholder="Loại (không bắt buộc)" data-field="type">
+    <button class="remove-row-btn" onclick="this.parentElement.remove()">✕</button>
+  `;
+  document.getElementById('formRows').appendChild(div);
+}
+
+async function importFormData() {
+  const sessionId = parseInt(document.getElementById('formSession').value);
+  if (!sessionId) { toast('Chọn session!', 'error'); return; }
+  const rows = document.querySelectorAll('.form-row');
+  const batch = [];
+  rows.forEach(r => {
+    const hanzi = r.querySelector('[data-field="hanzi"]').value.trim();
+    const pinyin = r.querySelector('[data-field="pinyin"]').value.trim();
+    const meaning = r.querySelector('[data-field="meaning"]').value.trim();
+    const word_type = r.querySelector('[data-field="type"]').value.trim() || null;
+    if (hanzi && pinyin && meaning) batch.push({ hanzi, pinyin, meaning, word_type, session_id: sessionId, review_status: 0 });
+  });
+  if (!batch.length) { toast('Không có dòng hợp lệ!', 'error'); return; }
+  await batchInsert(batch);
+}
+
+// Common import
+async function doImport(rows, hanziId, pinyinId, meaningId, typeId, sessionId) {
+  const sid = parseInt(document.getElementById(sessionId).value);
+  if (!sid) { toast('Chọn session!', 'error'); return; }
+  const hCol = document.getElementById(hanziId).value;
+  const pCol = document.getElementById(pinyinId).value;
+  const mCol = document.getElementById(meaningId).value;
+  const tCol = document.getElementById(typeId).value;
+  if (!hCol || !pCol || !mCol) { toast('Ánh xạ Hán tự, Pinyin, Nghĩa!', 'error'); return; }
+  const batch = [];
+  rows.forEach(r => {
+    const hanzi = (r[hCol] || '').trim();
+    const pinyin = (r[pCol] || '').trim();
+    const meaning = (r[mCol] || '').trim();
+    const word_type = tCol ? (r[tCol] || '').trim() || null : null;
+    if (hanzi && pinyin && meaning) batch.push({ hanzi, pinyin, meaning, word_type, session_id: sid, review_status: 0 });
+  });
+  if (!batch.length) { toast('Không có dòng hợp lệ!', 'error'); return; }
+  await batchInsert(batch);
+}
+
+async function batchInsert(batch) {
+  try {
+    const BATCH_SIZE = 500;
+    let inserted = 0;
+    for (let i = 0; i < batch.length; i += BATCH_SIZE) {
+      const chunk = batch.slice(i, i + BATCH_SIZE);
+      const res = await sbFetch('vocabulary', { method: 'POST', body: chunk });
+      inserted += (Array.isArray(res) ? res.length : 1);
+    }
+    toast('Đã import ' + inserted + ' từ vựng!');
+  } catch (e) { toast('Lỗi import: ' + e.message, 'error'); }
+}
+
+// ===== INIT =====
+initTabs();
+loadDashboard();
+</script>
+</body>
+</html>
