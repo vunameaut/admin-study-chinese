@@ -899,6 +899,8 @@ async function importFormData() {
     if (hanzi && pinyin && meaning) batch.push({ hanzi, pinyin, meaning, word_type, session_id: sessionId, review_status: 0 });
   });
   if (!batch.length) { toast('Không có dòng hợp lệ!', 'error'); return; }
+  const proceed = await checkDuplicates(batch, sessionId);
+  if (!proceed) return;
   await batchInsert(batch);
 }
 
@@ -920,7 +922,22 @@ async function doImport(rows, hanziId, pinyinId, meaningId, typeId, sessionId) {
     if (hanzi && pinyin && meaning) batch.push({ hanzi, pinyin, meaning, word_type, session_id: sid, review_status: 0 });
   });
   if (!batch.length) { toast('Không có dòng hợp lệ!', 'error'); return; }
+  const proceed = await checkDuplicates(batch, sid);
+  if (!proceed) return;
   await batchInsert(batch);
+}
+
+async function checkDuplicates(batch, sessionId) {
+  const existing = allVocab.filter(v => v.session_id === sessionId).map(v => v.hanzi.trim());
+  const dupes = batch.filter(b => existing.includes(b.hanzi.trim()));
+  if (!dupes.length) return true;
+  const uniqueDupes = [...new Set(dupes.map(d => d.hanzi))].join(', ');
+  return new Promise(resolve => {
+    showConfirm(
+      '⚠️ Phát hiện ' + dupes.length + ' từ đã có trong session:\n\n' + uniqueDupes + '\n\nBạn có muốn thêm tất cả (bao gồm từ trùng)?',
+      yes => resolve(yes)
+    );
+  });
 }
 
 async function batchInsert(batch) {
