@@ -364,9 +364,17 @@ function confirmAction(yes) {
 function toast(msg, type='success') {
   const el = document.createElement('div');
   el.className = 'toast toast-' + type;
+  if (type === 'error') {
+    el.style.whiteSpace = 'pre-wrap';
+    el.style.maxWidth = '500px';
+    el.style.fontSize = '12px';
+    el.style.maxHeight = '200px';
+    el.style.overflow = 'auto';
+  }
   el.textContent = msg;
   document.getElementById('toastContainer').appendChild(el);
-  setTimeout(() => el.remove(), 3000);
+  const dur = type === 'error' ? 8000 : 3000;
+  setTimeout(() => el.remove(), dur);
 }
 
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
@@ -843,6 +851,17 @@ document.getElementById('pasteArea').addEventListener('input', function() {
   renderPreviewTable('pastePreview', rows, headers.slice(0, Math.max(...lines.map(l => l.split(delim).length))));
   const actualHeaders = headers.slice(0, Math.max(...lines.map(l => l.split(delim).length)));
   setupMapping(['pmapHanzi','pmapPinyin','pmapMeaning','pmapType'], actualHeaders);
+  // Auto-map: 4 cột → Hán tự, Pinyin, Loại, Nghĩa; 3 cột → Hán tự, Pinyin, Nghĩa
+  if (actualHeaders.length >= 4) {
+    document.getElementById('pmapHanzi').value = actualHeaders[0];
+    document.getElementById('pmapPinyin').value = actualHeaders[1];
+    document.getElementById('pmapType').value = actualHeaders[2];
+    document.getElementById('pmapMeaning').value = actualHeaders[3];
+  } else if (actualHeaders.length >= 3) {
+    document.getElementById('pmapHanzi').value = actualHeaders[0];
+    document.getElementById('pmapPinyin').value = actualHeaders[1];
+    document.getElementById('pmapMeaning').value = actualHeaders[2];
+  }
   document.getElementById('pasteMapping').style.display = 'flex';
 });
 
@@ -910,11 +929,15 @@ async function batchInsert(batch) {
     let inserted = 0;
     for (let i = 0; i < batch.length; i += BATCH_SIZE) {
       const chunk = batch.slice(i, i + BATCH_SIZE);
+      console.log('Importing chunk:', JSON.stringify(chunk.slice(0,2)));
       const res = await sbFetch('vocabulary', { method: 'POST', body: chunk });
       inserted += (Array.isArray(res) ? res.length : 1);
     }
     toast('Đã import ' + inserted + ' từ vựng!');
-  } catch (e) { toast('Lỗi import: ' + e.message, 'error'); }
+  } catch (e) {
+    console.error('Import error:', e);
+    toast('Lỗi import: ' + e.message, 'error');
+  }
 }
 
 // ===== INIT =====
