@@ -129,7 +129,7 @@ tr:hover td{background:#fff5eb}
 
 /* Dynamic form rows */
 .form-rows{display:flex;flex-direction:column;gap:8px;max-height:400px;overflow-y:auto;padding:8px 0}
-.form-row{display:grid;grid-template-columns:1fr 1fr 1.5fr .8fr auto;gap:6px;align-items:center}
+.form-row{display:grid;grid-template-columns:1fr 1fr .8fr 1.5fr auto;gap:6px;align-items:center}
 .form-row input{padding:8px 10px;border:var(--border-thin);border-radius:2px;font-size:13px;background:var(--bg-white);color:var(--ink);font-family:'Inter',sans-serif;font-weight:600;box-shadow:2px 2px 0 rgba(0,0,0,.1);transition:all .15s}
 .form-row input:focus{outline:none;border-color:var(--orange);box-shadow:2px 2px 0 var(--orange)}
 .form-row input.hanzi-input{font-family:'Noto Serif SC',serif;font-size:16px}
@@ -252,14 +252,31 @@ tr:hover td{background:#fff5eb}
       </div>
 
       <div class="tab-content" id="tabPaste">
-        <textarea id="pasteArea" placeholder="Dán dữ liệu tại đây...&#10;Mỗi dòng một từ, phân cách bởi dấu phẩy/tab/chấm phẩy&#10;Ví dụ: 你好,nǐhǎo,Xin chào"></textarea>
+        <div style="margin-bottom:12px;display:flex;gap:10px;align-items:center">
+          <label style="font-size:13px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.3px;min-width:80px">Session:</label><select id="pmapSessionSelect" style="padding:8px 12px;border:var(--border-thin);border-radius:2px;font-size:13px;font-weight:600;background:var(--bg-white);color:var(--ink);box-shadow:3px 3px 0 rgba(0,0,0,.12)"></select>
+        </div>
+        <textarea id="pasteArea" placeholder="Dán dữ liệu từ vựng tại đây...
+Mỗi dòng một từ, phân cách bởi dấu phẩy/tab/chấm phẩy
+→ Sau khi dán, chọn ánh xạ đúng cột ở phía dưới rồi bấm Import"></textarea>
+        <div style="margin-top:12px;display:flex;align-items:center;gap:10px">
+          <span style="font-size:13px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.3px">Mẫu dữ liệu:</span>
+          <button class="btn btn-ghost btn-sm" onclick="navigator.clipboard.writeText(document.getElementById('pasteSample').value);toast('Đã copy!')">📋 Copy</button>
+        </div>
+        <textarea id="pasteSample" readonly style="margin-top:6px;width:100%;min-height:130px;padding:10px 12px;border:var(--border-thin);border-radius:2px;font-size:13px;background:#f5f0e6;color:var(--ink-soft);font-family:'Inter','Noto Serif SC',sans-serif;font-weight:600;resize:none;cursor:default">你好,nǐ hǎo,đại từ,Xin chào
+谢谢,xiè xie,động từ,Cảm ơn
+学生,xué shēng,danh từ,Học sinh
+老师,lǎo shī,danh từ,Giáo viên
+朋友,péng yǒu,danh từ,Bạn bè
+好看,hǎo kàn,tính từ,Đẹp
+跑步,pǎo bù,động từ,Chạy bộ
+昨天,zuó tiān,danh từ thời gian,Hôm qua</textarea>
         <div class="preview-table" id="pastePreview" style="display:none"></div>
         <div class="mapping-row" id="pasteMapping" style="display:none">
           <label>Hán tự:</label><select id="pmapHanzi"></select>
           <label>Pinyin:</label><select id="pmapPinyin"></select>
           <label>Nghĩa:</label><select id="pmapMeaning"></select>
           <label>Loại:</label><select id="pmapType"><option value="">— bỏ qua —</option></select>
-          <label>Session:</label><select id="pmapSession"></select>
+          <label>Session:</label><span style="font-weight:600;color:var(--ink-faint)">(Chọn ở trên)</span>
           <button class="btn btn-jade" onclick="importPasteData()">Import</button>
         </div>
       </div>
@@ -600,7 +617,7 @@ async function loadVocabulary() {
 
 function populateSessionDropdowns() {
   const opts = '<option value="">Tất cả Sessions</option>' + allSessions.map(s => `<option value="${s.id}">${s.title || 'Session ' + s.id}</option>`).join('');
-  ['vocabSessionInput','mapSession','pmapSession','formSession'].forEach(id => {
+  ['vocabSessionInput','mapSession','pmapSessionSelect','formSession'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.innerHTML = allSessions.map(s => `<option value="${s.id}">${s.title || 'Session ' + s.id}</option>`).join('');
   });
@@ -830,7 +847,7 @@ document.getElementById('pasteArea').addEventListener('input', function() {
 });
 
 async function importPasteData() {
-  await doImport(pasteParsedRows, 'pmapHanzi', 'pmapPinyin', 'pmapMeaning', 'pmapType', 'pmapSession');
+  await doImport(pasteParsedRows, 'pmapHanzi', 'pmapPinyin', 'pmapMeaning', 'pmapType', 'pmapSessionSelect');
 }
 
 // Form tab
@@ -843,8 +860,8 @@ function addFormRow() {
   div.innerHTML = `
     <input class="hanzi-input" placeholder="Hán tự" data-field="hanzi">
     <input placeholder="Pinyin" data-field="pinyin" style="font-style:italic">
+    <input placeholder="Loại từ" data-field="type">
     <input placeholder="Nghĩa" data-field="meaning">
-    <input placeholder="Loại (không bắt buộc)" data-field="type">
     <button class="remove-row-btn" onclick="this.parentElement.remove()">✕</button>
   `;
   document.getElementById('formRows').appendChild(div);
