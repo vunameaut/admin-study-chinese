@@ -1414,7 +1414,7 @@ function parseAndApplyAiGrammar() {
     }
   }
 
-  if (!data || (!data.title && !data.structure && !data.hsk_level)) {
+  if (!data || (!data.title && !data.structure && !data.explanation && !data.examples)) {
     toast('Không nhận diện được dữ liệu ngữ pháp. Vui lòng kiểm tra lại định dạng từ bot AI!', 'error');
     return;
   }
