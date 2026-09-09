@@ -172,6 +172,7 @@ tr:hover td{background:#fff5eb}
     <button class="nav-item active" data-page="dashboard"><span class="nav-icon">📊</span>Dashboard</button>
     <button class="nav-item" data-page="sessions"><span class="nav-icon">📖</span>Sessions</button>
     <button class="nav-item" data-page="vocabulary"><span class="nav-icon">📝</span>Từ vựng</button>
+    <button class="nav-item" data-page="grammar"><span class="nav-icon">💡</span>Ngữ pháp</button>
     <button class="nav-item" data-page="import"><span class="nav-icon">📥</span>Import</button>
   </nav>
 </aside>
@@ -230,6 +231,46 @@ tr:hover td{background:#fff5eb}
   </div>
 
   <!-- Import -->
+  
+  <!-- Grammar -->
+  <div class="page" id="page-grammar">
+    <div class="toolbar">
+      <select id="grammarHskFilter">
+        <option value="">Tất cả HSK</option>
+        <option value="1">HSK 1</option>
+        <option value="2">HSK 2</option>
+        <option value="3">HSK 3</option>
+        <option value="4">HSK 4</option>
+        <option value="5">HSK 5</option>
+        <option value="6">HSK 6</option>
+      </select>
+      <select id="grammarLessonFilter">
+        <option value="">Tất cả bài học</option>
+      </select>
+      <input type="text" id="grammarSearch" placeholder="Tìm tên ngữ pháp, cấu trúc..." style="min-width:240px">
+      <button class="btn btn-jade" onclick="openGrammarModal()">+ Thêm ngữ pháp</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Cấp độ & Bài</th>
+            <th>Tên điểm ngữ pháp</th>
+            <th>Cấu trúc</th>
+            <th>Ví dụ</th>
+            <th>Bài tập</th>
+            <th>Thứ tự</th>
+            <th>Ngày tạo</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="grammarTbody"></tbody>
+      </table>
+    </div>
+    <div class="pagination" id="grammarPagination"></div>
+  </div>
+
   <div class="page" id="page-import">
     <div class="card">
       <div class="tabs">
@@ -324,6 +365,78 @@ Mỗi dòng một từ, phân cách bởi dấu phẩy/tab/chấm phẩy
   </div>
 </div>
 
+
+<!-- Grammar Modal -->
+<div class="modal-overlay" id="grammarModal">
+  <div class="modal" style="max-width:680px">
+    <h3 id="grammarModalTitle">Thêm Ngữ pháp</h3>
+    <input type="hidden" id="grammarEditId">
+    
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+      <div class="form-group">
+        <label>Cấp độ HSK *</label>
+        <select id="grammarHskInput">
+          <option value="1">HSK 1</option>
+          <option value="2">HSK 2</option>
+          <option value="3">HSK 3</option>
+          <option value="4">HSK 4</option>
+          <option value="5">HSK 5</option>
+          <option value="6">HSK 6</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Bài số *</label>
+        <input type="number" id="grammarLessonNumInput" placeholder="1" min="1" value="1">
+      </div>
+      <div class="form-group">
+        <label>Thứ tự trong bài</label>
+        <input type="number" id="grammarOrderIndexInput" placeholder="1" min="1" value="1">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Tên bài học</label>
+      <input type="text" id="grammarLessonTitleInput" placeholder="VD: Bài 1: 你好 (Xin chào)">
+    </div>
+
+    <div class="form-group">
+      <label>Tên điểm ngữ pháp *</label>
+      <input type="text" id="grammarTitleInput" placeholder="VD: 1. Đại từ nhân xưng: 你 (nǐ), 您 (nín), 你们 (nǐmen)">
+    </div>
+
+    <div class="form-group">
+      <label>Cấu trúc / Công thức tóm tắt</label>
+      <input type="text" id="grammarStructureInput" placeholder="VD: 你 (bạn) | 您 (ngài) | 你们 (các bạn)">
+    </div>
+
+    <div class="form-group">
+      <label>Giải thích chi tiết (Hỗ trợ HTML: &lt;b&gt;, &lt;br&gt;, •)</label>
+      <textarea id="grammarExplanationInput" rows="3" placeholder="Giải thích quy tắc, cách dùng và lưu ý..."></textarea>
+    </div>
+
+    <div class="form-group">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <label style="margin-bottom:0">Câu ví dụ (Mỗi câu 1 dòng: Hán tự | Pinyin | Nghĩa)</label>
+        <span style="font-size:11px;color:var(--orange);font-weight:700;cursor:pointer" onclick="insertAdminExampleSample()">+ Mẫu ví dụ</span>
+      </div>
+      <textarea id="grammarExamplesInput" rows="3" placeholder="你好！ | Nǐ hǎo! | Chào bạn!&#10;老师，您好！ | Lǎoshī, nín hǎo! | Em chào thầy giáo ạ!"></textarea>
+    </div>
+
+    <div class="form-group">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <label style="margin-bottom:0">Bài tập ôn luyện (Định dạng JSON)</label>
+        <span style="font-size:11px;color:var(--orange);font-weight:700;cursor:pointer" onclick="insertAdminExerciseSample()">+ Mẫu trắc nghiệm & sắp xếp</span>
+      </div>
+      <textarea id="grammarExercisesInput" rows="3" placeholder='[{"type":"choice","question":"Chào thầy: 老师，___ 好！","options":["您","你","吗","谁"],"answer":"您"}]' style="font-family:monospace;font-size:12px"></textarea>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('grammarModal')">Hủy</button>
+      <button class="btn btn-jade" onclick="saveGrammar()">Lưu</button>
+    </div>
+  </div>
+</div>
+
 <!-- Confirm -->
 <div class="confirm-overlay" id="confirmOverlay">
   <div class="confirm-box">
@@ -414,7 +527,7 @@ let currentPage = 'dashboard';
 let allSessions = [];
 let allVocab = [];
 
-const pageTitles = { dashboard:'Dashboard', sessions:'Sessions', vocabulary:'Từ vựng', import:'Import' };
+const pageTitles = { dashboard:'Dashboard', sessions:'Sessions', vocabulary:'Từ vựng', grammar:'Ngữ pháp', import:'Import' };
 
 function navigateTo(page) {
   currentPage = page;
@@ -426,6 +539,7 @@ function navigateTo(page) {
   if (page === 'dashboard') loadDashboard();
   else if (page === 'sessions') loadSessions();
   else if (page === 'vocabulary') loadVocabulary();
+  else if (page === 'grammar') loadGrammar();
   else if (page === 'import') loadImportPage();
 }
 
@@ -960,6 +1074,333 @@ async function batchInsert(batch) {
 // ===== INIT =====
 initTabs();
 loadDashboard();
+
+
+// ===== GRAMMAR =====
+let allGrammar = [];
+let grammarPage = 1;
+const GRAMMAR_PER_PAGE = 15;
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+async function loadGrammar() {
+  try {
+    allGrammar = await sbFetch('grammar', {
+      select: 'id,hsk_level,lesson_num,lesson_title,title,structure,explanation,examples,exercises,order_index,created_at',
+      order: 'hsk_level.asc,lesson_num.asc,order_index.asc,id.asc'
+    });
+    populateGrammarLessonFilter();
+    renderGrammarTable();
+  } catch (e) {
+    toast('Lỗi tải danh sách ngữ pháp: ' + e.message, 'error');
+  }
+}
+
+function populateGrammarLessonFilter() {
+  const hsk = document.getElementById('grammarHskFilter').value;
+  const filterList = hsk ? allGrammar.filter(g => g.hsk_level == hsk) : allGrammar;
+  
+  const lessonsMap = new Map();
+  filterList.forEach(g => {
+    const key = (g.hsk_level || 1) + '-' + (g.lesson_num || 1);
+    if (!lessonsMap.has(key)) {
+      lessonsMap.set(key, {
+        hsk: g.hsk_level || 1,
+        num: g.lesson_num || 1,
+        title: g.lesson_title || ('Bài ' + (g.lesson_num || 1))
+      });
+    }
+  });
+
+  const sortedLessons = Array.from(lessonsMap.values()).sort((a, b) => {
+    if (a.hsk !== b.hsk) return a.hsk - b.hsk;
+    return a.num - b.num;
+  });
+
+  const currentVal = document.getElementById('grammarLessonFilter').value;
+  document.getElementById('grammarLessonFilter').innerHTML = 
+    '<option value="">Tất cả bài học</option>' +
+    sortedLessons.map(l => `<option value="${l.hsk}-${l.num}">HSK ${l.hsk} - ${l.title}</option>`).join('');
+  
+  if (currentVal && lessonsMap.has(currentVal)) {
+    document.getElementById('grammarLessonFilter').value = currentVal;
+  }
+}
+
+function getFilteredGrammar() {
+  const hsk = document.getElementById('grammarHskFilter').value;
+  const lessonKey = document.getElementById('grammarLessonFilter').value;
+  const q = (document.getElementById('grammarSearch').value || '').trim().toLowerCase();
+
+  return allGrammar.filter(g => {
+    if (hsk && g.hsk_level != hsk) return false;
+    if (lessonKey) {
+      const [lHsk, lNum] = lessonKey.split('-');
+      if (g.hsk_level != lHsk || g.lesson_num != lNum) return false;
+    }
+    if (q) {
+      const matchTitle = (g.title || '').toLowerCase().includes(q);
+      const matchStruct = (g.structure || '').toLowerCase().includes(q);
+      const matchLesson = (g.lesson_title || '').toLowerCase().includes(q);
+      const matchExp = (g.explanation || '').toLowerCase().includes(q);
+      if (!matchTitle && !matchStruct && !matchLesson && !matchExp) return false;
+    }
+    return true;
+  });
+}
+
+function renderGrammarTable() {
+  const filtered = getFilteredGrammar();
+  const total = Math.ceil(filtered.length / GRAMMAR_PER_PAGE);
+  if (grammarPage > total) grammarPage = total || 1;
+  const start = (grammarPage - 1) * GRAMMAR_PER_PAGE;
+  const pageItems = filtered.slice(start, start + GRAMMAR_PER_PAGE);
+
+  const tbody = document.getElementById('grammarTbody');
+  if (pageItems.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--ink-faint)">Không tìm thấy điểm ngữ pháp nào. Bấm "+ Thêm ngữ pháp" để tạo mới.</td></tr>';
+    renderPagination('grammarPagination', 0, 1, () => {});
+    return;
+  }
+
+  tbody.innerHTML = pageItems.map(g => {
+    const exCount = Array.isArray(g.examples) ? g.examples.length : 0;
+    const qCount = Array.isArray(g.exercises) ? g.exercises.length : 0;
+    const lessonLabel = g.lesson_title ? g.lesson_title : `Bài ${g.lesson_num || 1}`;
+
+    return `<tr style="cursor:pointer" onclick="openGrammarModal(${g.id})">
+      <td>${g.id}</td>
+      <td>
+        <span class="badge badge-hsk">HSK ${g.hsk_level || 1}</span>
+        <div style="font-size:12px;font-weight:600;color:var(--ink-soft);margin-top:2px">${escapeHtml(lessonLabel)}</div>
+      </td>
+      <td><strong>${escapeHtml(g.title || '')}</strong></td>
+      <td style="font-family:monospace;font-size:12px;color:var(--ink-soft);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(g.structure || '-')}</td>
+      <td><span class="badge" style="background:#e0f2fe;color:#0284c7;border-color:#0284c7">${exCount} câu</span></td>
+      <td><span class="badge" style="background:#fef3c7;color:#d97706;border-color:#d97706">${qCount} bài</span></td>
+      <td>${g.order_index || 1}</td>
+      <td>${formatDate(g.created_at)}</td>
+      <td>
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openGrammarModal(${g.id})">Sửa</button>
+        <button class="btn btn-seal btn-sm" onclick="event.stopPropagation();deleteGrammar(${g.id})">Xóa</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  renderPagination('grammarPagination', total, grammarPage, p => {
+    grammarPage = p;
+    renderGrammarTable();
+  });
+}
+
+function openGrammarModal(id) {
+  const g = id ? allGrammar.find(x => x.id === id) : null;
+  document.getElementById('grammarEditId').value = g ? g.id : '';
+  document.getElementById('grammarHskInput').value = g ? (g.hsk_level || 1) : '1';
+  document.getElementById('grammarLessonNumInput').value = g ? (g.lesson_num || 1) : '1';
+  document.getElementById('grammarOrderIndexInput').value = g ? (g.order_index || 1) : '1';
+  document.getElementById('grammarLessonTitleInput').value = g ? (g.lesson_title || '') : '';
+  document.getElementById('grammarTitleInput').value = g ? (g.title || '') : '';
+  document.getElementById('grammarStructureInput').value = g ? (g.structure || '') : '';
+  document.getElementById('grammarExplanationInput').value = g ? (g.explanation || '') : '';
+
+  if (g && Array.isArray(g.examples) && g.examples.length > 0) {
+    const lines = g.examples.map(ex => {
+      const h = ex.hanzi || '';
+      const p = ex.pinyin || '';
+      const m = ex.meaning || '';
+      return `${h} | ${p} | ${m}`;
+    });
+    document.getElementById('grammarExamplesInput').value = lines.join('\n');
+  } else {
+    document.getElementById('grammarExamplesInput').value = '';
+  }
+
+  if (g && Array.isArray(g.exercises) && g.exercises.length > 0) {
+    document.getElementById('grammarExercisesInput').value = JSON.stringify(g.exercises, null, 2);
+  } else {
+    document.getElementById('grammarExercisesInput').value = '';
+  }
+
+  document.getElementById('grammarModalTitle').textContent = g ? 'Sửa Điểm Ngữ pháp' : 'Thêm Điểm Ngữ pháp';
+  document.getElementById('grammarModal').classList.add('open');
+}
+
+async function saveGrammar() {
+  try {
+    const id = document.getElementById('grammarEditId').value;
+    const hsk_level = parseInt(document.getElementById('grammarHskInput').value) || 1;
+    const lesson_num = parseInt(document.getElementById('grammarLessonNumInput').value) || 1;
+    const order_index = parseInt(document.getElementById('grammarOrderIndexInput').value) || 1;
+    const lesson_title = document.getElementById('grammarLessonTitleInput').value.trim();
+    const title = document.getElementById('grammarTitleInput').value.trim();
+    const structure = document.getElementById('grammarStructureInput').value.trim();
+    const explanation = document.getElementById('grammarExplanationInput').value.trim();
+
+    if (!title) {
+      toast('Vui lòng nhập tên điểm ngữ pháp!', 'error');
+      return;
+    }
+
+    const rawExamples = document.getElementById('grammarExamplesInput').value.trim();
+    let examples = [];
+    if (rawExamples) {
+      if (rawExamples.startsWith('[') && rawExamples.endsWith(']')) {
+        try {
+          examples = JSON.parse(rawExamples);
+        } catch(e) {
+          toast('Định dạng JSON ví dụ không hợp lệ: ' + e.message, 'error');
+          return;
+        }
+      } else {
+        const lines = rawExamples.split('\n');
+        lines.forEach(line => {
+          const trimmed = line.trim();
+          if (!trimmed) return;
+          const parts = trimmed.split('|').map(s => s.trim());
+          if (parts.length >= 2) {
+            examples.push({
+              hanzi: parts[0] || '',
+              pinyin: parts[1] || '',
+              meaning: parts[2] || ''
+            });
+          } else {
+            examples.push({
+              hanzi: parts[0],
+              pinyin: '',
+              meaning: ''
+            });
+          }
+        });
+      }
+    }
+
+    const rawExercises = document.getElementById('grammarExercisesInput').value.trim();
+    let exercises = [];
+    if (rawExercises) {
+      try {
+        exercises = JSON.parse(rawExercises);
+        if (!Array.isArray(exercises)) {
+          toast('Bài tập phải là mảng JSON [ ... ]!', 'error');
+          return;
+        }
+      } catch(e) {
+        toast('Lỗi cú pháp JSON bài tập: ' + e.message, 'error');
+        return;
+      }
+    }
+
+    const payload = {
+      hsk_level,
+      lesson_num,
+      order_index,
+      lesson_title: lesson_title || `Bài ${lesson_num}`,
+      title,
+      structure: structure || null,
+      explanation: explanation || null,
+      examples,
+      exercises
+    };
+
+    if (id) {
+      await sbFetch('grammar', {
+        method: 'PATCH',
+        filter: { 'id': 'eq.' + id },
+        body: payload
+      });
+      toast('Đã cập nhật điểm ngữ pháp thành công!');
+    } else {
+      await sbFetch('grammar', {
+        method: 'POST',
+        body: payload
+      });
+      toast('Đã thêm điểm ngữ pháp mới thành công!');
+    }
+
+    closeModal('grammarModal');
+    loadGrammar();
+  } catch (e) {
+    toast('Lỗi khi lưu ngữ pháp: ' + e.message, 'error');
+  }
+}
+
+function deleteGrammar(id) {
+  showConfirm('Bạn có chắc chắn muốn xóa điểm ngữ pháp này không?', async (yes) => {
+    if (!yes) return;
+    try {
+      await sbFetch('grammar', {
+        method: 'DELETE',
+        filter: { 'id': 'eq.' + id }
+      });
+      toast('Đã xóa điểm ngữ pháp');
+      loadGrammar();
+    } catch (e) {
+      toast('Lỗi khi xóa: ' + e.message, 'error');
+    }
+  });
+}
+
+function insertAdminExampleSample() {
+  const el = document.getElementById('grammarExamplesInput');
+  const sample = '我是学生。 | Wǒ shì xuésheng. | Tôi là học sinh.\n';
+  el.value += sample;
+  el.focus();
+}
+
+function insertAdminExerciseSample() {
+  const el = document.getElementById('grammarExercisesInput');
+  const sample = [
+    {
+      "type": "choice",
+      "question": "Chào thầy giáo một cách kính trọng: 老师，___ 好！",
+      "options": ["您", "你", "吗", "谁"],
+      "answer": "您",
+      "pinyin": "Lǎoshī, ___ hǎo!",
+      "meaning": "Em kính chào thầy ạ!",
+      "explanation": "Dùng kính ngữ '您'."
+    },
+    {
+      "type": "order",
+      "words": ["老师", "，", "您", "好", "！"],
+      "answer": "老师，您好！",
+      "pinyin": "Lǎoshī, nín hǎo!",
+      "meaning": "Em chào thầy giáo ạ!",
+      "explanation": "Thứ tự: Danh xưng trước, lời chào sau."
+    }
+  ];
+  el.value = JSON.stringify(sample, null, 2);
+  el.focus();
+}
+
+// Event Listeners for Grammar Filters
+document.addEventListener('DOMContentLoaded', () => {
+  const hskFilter = document.getElementById('grammarHskFilter');
+  if (hskFilter) {
+    hskFilter.addEventListener('change', () => {
+      populateGrammarLessonFilter();
+      grammarPage = 1;
+      renderGrammarTable();
+    });
+  }
+  const lessonFilter = document.getElementById('grammarLessonFilter');
+  if (lessonFilter) {
+    lessonFilter.addEventListener('change', () => {
+      grammarPage = 1;
+      renderGrammarTable();
+    });
+  }
+  const searchInput = document.getElementById('grammarSearch');
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      grammarPage = 1;
+      renderGrammarTable();
+    });
+  }
+});
+
 </script>
 </body>
 </html>
