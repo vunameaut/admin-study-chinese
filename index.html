@@ -1291,6 +1291,43 @@ function openGrammarModal(id) {
 }
 
 // ===== PARSER DÁN DỮ LIỆU TỪ BOT AI =====
+function cleanJsonString(str) {
+  if (!str) return '';
+  let inString = false;
+  let isEscaped = false;
+  let out = '';
+  
+  for (let i = 0; i < str.length; i++) {
+    const char = str[i];
+    if (char === '"' && !isEscaped) {
+      inString = !inString;
+      out += char;
+    } else if (inString) {
+      if (char === '\n') {
+        out += '\\n';
+      } else if (char === '\r') {
+        // bỏ qua carriage return
+      } else if (char === '\t') {
+        out += '\\t';
+      } else {
+        out += char;
+      }
+    } else {
+      out += char;
+    }
+    
+    if (char === '\\' && !isEscaped) {
+      isEscaped = true;
+    } else {
+      isEscaped = false;
+    }
+  }
+  // Loại bỏ dấu phẩy thừa trước } hoặc ] (lỗi thường gặp của LLM)
+  out = out.replace(/,\s*([\]}])/g, '$1');
+  return out;
+}
+
+// ===== PARSER DÁN DỮ LIỆU TỪ BOT AI (HỖ TRỢ JSON CẢ KHI CÓ XUỐNG DÒNG THÔ) =====
 function parseAndApplyAiGrammar() {
   const pasteInput = document.getElementById('grammarAiPasteInput');
   if (!pasteInput || !pasteInput.value.trim()) {
@@ -1300,30 +1337,32 @@ function parseAndApplyAiGrammar() {
 
   let text = pasteInput.value.trim();
 
-  // Bỏ bọc markdown codeblock nếu có (\`\`\`json ... \`\`\`)
-  if (text.startsWith('\`\`\`')) {
-    text = text.replace(/^\`\`\`(?:json)?\s*/i, '').replace(/\s*\`\`\`$/, '').trim();
+  // Bỏ bọc markdown codeblock nếu có (```json ... ```)
+  if (text.startsWith('```')) {
+    text = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
   }
 
   let data = null;
 
-  // 1. Thử parse trực tiếp dạng JSON
-  if ((text.startsWith('{') && text.endsWith('}')) || (text.startsWith('[') && text.endsWith(']'))) {
-    try {
-      const parsed = JSON.parse(text);
-      data = Array.isArray(parsed) ? parsed[0] : parsed;
-    } catch(e) {
-      console.log('JSON parse error, fallback to text parsing:', e.message);
-    }
+  // 1. Thử làm sạch các ký tự điều khiển xuống dòng thô và parse JSON
+  try {
+    const cleaned = cleanJsonString(text);
+    const parsed = JSON.parse(cleaned);
+    data = Array.isArray(parsed) ? parsed[0] : parsed;
+  } catch(e) {
+    console.log('Direct clean JSON parse failed, trying regex extraction:', e.message);
   }
 
-  // 2. Thử tìm JSON bên trong đoạn text
+  // 2. Thử tìm khối JSON {...} bên trong văn bản dài
   if (!data) {
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       try {
-        data = JSON.parse(jsonMatch[0]);
-      } catch(e) {}
+        const cleanedMatch = cleanJsonString(jsonMatch[0]);
+        data = JSON.parse(cleanedMatch);
+      } catch(e) {
+        console.log('Regex block JSON parse failed:', e.message);
+      }
     }
   }
 
@@ -1336,17 +1375,17 @@ function parseAndApplyAiGrammar() {
     const lessonMatch = text.match(/(?:Bài số|Bài|Lesson)\s*[:：]\s*(\d+)/i) || text.match(/Bài\s*(\d+)/i);
     if (lessonMatch) data.lesson_num = parseInt(lessonMatch[1]);
 
-    const lessonTitleMatch = text.match(/(?:Tên bài|Chủ đề bài)\s*[:：]\s*(.+)/i);
+    const lessonTitleMatch = text.match(/(?:Tên bài|Chủ đề bài)\s*[:：]\s*["']?([^"'\n]+)["']?/i);
     if (lessonTitleMatch) data.lesson_title = lessonTitleMatch[1].trim();
 
-    const titleMatch = text.match(/(?:Tên ngữ pháp|Tiêu đề|Điểm ngữ pháp)\s*[:：]\s*(.+)/i);
+    const titleMatch = text.match(/(?:Tên ngữ pháp|Tiêu đề|Điểm ngữ pháp)\s*[:：]\s*["']?([^"'\n]+)["']?/i);
     if (titleMatch) data.title = titleMatch[1].trim();
 
-    const structMatch = text.match(/(?:Cấu trúc|Công thức)\s*[:：]\s*(.+)/i);
+    const structMatch = text.match(/(?:Cấu trúc|Công thức)\s*[:：]\s*["']?([^"'\n]+)["']?/i);
     if (structMatch) data.structure = structMatch[1].trim();
 
-    const expMatch = text.match(/(?:Giải thích|Cách dùng)\s*[:：]\s*([\s\S]*?)(?=(?:Ví dụ|Câu ví dụ|Bài tập|$))/i);
-    if (expMatch) data.explanation = expMatch[1].trim();
+    const expMatch = text.match(/(?:Giải thích|Cách dùng)\s*[:：]\s*["']?([\s\S]*?)(?=(?:Ví dụ|Câu ví dụ|Bài tập|"examples"|exercises|$))/i);
+    if (expMatch) data.explanation = expMatch[1].trim().replace(/["',]+$/, '');
 
     const exSectionMatch = text.match(/(?:Ví dụ|Câu ví dụ)\s*[:：]\s*([\s\S]*?)(?=(?:Bài tập|$))/i);
     if (exSectionMatch) {
@@ -1368,7 +1407,10 @@ function parseAndApplyAiGrammar() {
 
     const exerciseJsonMatch = text.match(/\[\s*\{[\s\S]*\}\s*\]/);
     if (exerciseJsonMatch) {
-      try { data.exercises = JSON.parse(exerciseJsonMatch[0]); } catch(e) {}
+      try {
+        const cleanedEx = cleanJsonString(exerciseJsonMatch[0]);
+        data.exercises = JSON.parse(cleanedEx);
+      } catch(e) {}
     }
   }
 
@@ -1383,7 +1425,10 @@ function parseAndApplyAiGrammar() {
   if (data.lesson_title) document.getElementById('grammarLessonTitleInput').value = data.lesson_title;
   if (data.title) document.getElementById('grammarTitleInput').value = data.title;
   if (data.structure) document.getElementById('grammarStructureInput').value = data.structure;
-  if (data.explanation) document.getElementById('grammarExplanationInput').value = data.explanation;
+  if (data.explanation) {
+    // Chuyển các dòng ngắt thành <br> hoặc giữ nguyên text
+    document.getElementById('grammarExplanationInput').value = data.explanation;
+  }
   if (data.order_index) document.getElementById('grammarOrderIndexInput').value = data.order_index;
 
   // Điền ví dụ
