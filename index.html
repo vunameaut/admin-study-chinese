@@ -1601,11 +1601,11 @@ function insertAdminExerciseSample() {
 
 // Bắt sự kiện lọc và ngăn modal bị đóng khi ấn ra ngoài
 document.addEventListener('DOMContentLoaded', () => {
-  // 1. Ngăn ấn ra ngoài đóng modal
+  // 1. Khi ấn ra ngoài vùng nền đen thì sẽ tự động đóng modal
   document.querySelectorAll('.modal-overlay').forEach(overlay => {
     overlay.addEventListener('click', (e) => {
       if (e.target === overlay) {
-        e.stopPropagation();
+        overlay.classList.remove('open');
       }
     });
   });
