@@ -378,11 +378,14 @@ Mỗi dòng một từ, phân cách bởi dấu phẩy/tab/chấm phẩy
     <div style="background:#fffaf0;border:2px dashed var(--orange);border-radius:4px;padding:12px;margin-bottom:16px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
         <strong style="font-size:13px;color:var(--orange);display:flex;align-items:center;gap:6px">
-          <span>⚡ Dán nhanh dữ liệu từ Bot AI</span>
+          <span>⚡ Dán nhanh dữ liệu từ Bot AI (Tự động điền khi Paste)</span>
         </strong>
         <button type="button" class="btn btn-jade btn-sm" onclick="parseAndApplyAiGrammar()">⚡ Phân tích & Điền Form</button>
       </div>
-      <textarea id="grammarAiPasteInput" rows="2" placeholder="Dán toàn bộ kết quả bot AI trả về vào đây (JSON hoặc văn bản)... rồi bấm nút '⚡ Phân tích & Điền Form'" style="font-family:monospace;font-size:12px;margin-bottom:0"></textarea>
+      <textarea id="grammarAiPasteInput" rows="2" 
+        placeholder="Dán toàn bộ kết quả bot AI trả về vào đây (JSON hoặc văn bản)... Hệ thống sẽ tự động nhận diện và điền form ngay!" 
+        onpaste="handleAiGrammarPaste(event)"
+        style="font-family:monospace;font-size:12px;margin-bottom:0"></textarea>
     </div>
     <input type="hidden" id="grammarEditId">
     
@@ -1327,15 +1330,28 @@ function cleanJsonString(str) {
   return out;
 }
 
+// Tự động phân tích và điền form khi dán dữ liệu vào ô
+function handleAiGrammarPaste(event) {
+  let clipboardText = '';
+  if (event && event.clipboardData) {
+    clipboardText = event.clipboardData.getData('text');
+  }
+  setTimeout(() => {
+    parseAndApplyAiGrammar(clipboardText);
+  }, 60);
+}
+
 // ===== PARSER DÁN DỮ LIỆU TỪ BOT AI (HỖ TRỢ JSON CẢ KHI CÓ XUỐNG DÒNG THÔ) =====
-function parseAndApplyAiGrammar() {
+function parseAndApplyAiGrammar(manualText) {
   const pasteInput = document.getElementById('grammarAiPasteInput');
-  if (!pasteInput || !pasteInput.value.trim()) {
+  let text = (typeof manualText === 'string' && manualText.trim())
+    ? manualText.trim()
+    : (pasteInput ? pasteInput.value.trim() : '');
+
+  if (!text) {
     toast('Vui lòng dán dữ liệu do Bot AI trả về vào ô trên trước!', 'error');
     return;
   }
-
-  let text = pasteInput.value.trim();
 
   // Bỏ bọc markdown codeblock nếu có (```json ... ```)
   if (text.startsWith('```')) {
@@ -1366,49 +1382,103 @@ function parseAndApplyAiGrammar() {
     }
   }
 
-  // 3. Fallback: Parse theo dạng nhãn văn bản (Key-Value)
+  // 3. Fallback: Parse thông minh khi JSON bị lỗi (dấu ngoặc kép trong văn bản chưa escape, nhãn Key-Value...)
   if (!data) {
     data = {};
-    const hskMatch = text.match(/(?:HSK|Cấp độ)\s*[:：]\s*(\d+)/i) || text.match(/HSK\s*(\d+)/i);
-    if (hskMatch) data.hsk_level = parseInt(hskMatch[1]);
 
-    const lessonMatch = text.match(/(?:Bài số|Bài|Lesson)\s*[:：]\s*(\d+)/i) || text.match(/Bài\s*(\d+)/i);
-    if (lessonMatch) data.lesson_num = parseInt(lessonMatch[1]);
-
-    const lessonTitleMatch = text.match(/(?:Tên bài|Chủ đề bài)\s*[:：]\s*["']?([^"'\n]+)["']?/i);
-    if (lessonTitleMatch) data.lesson_title = lessonTitleMatch[1].trim();
-
-    const titleMatch = text.match(/(?:Tên ngữ pháp|Tiêu đề|Điểm ngữ pháp)\s*[:：]\s*["']?([^"'\n]+)["']?/i);
+    // Tiêu đề
+    const titleMatch = text.match(/"title"\s*:\s*"([^"\n]+)"/i) ||
+                       text.match(/(?:Tên ngữ pháp|Tiêu đề|Điểm ngữ pháp)\s*[:：]\s*["']?([^"'\n]+)["']?/i);
     if (titleMatch) data.title = titleMatch[1].trim();
 
-    const structMatch = text.match(/(?:Cấu trúc|Công thức)\s*[:：]\s*["']?([^"'\n]+)["']?/i);
+    // Cấu trúc
+    const structMatch = text.match(/"structure"\s*:\s*"([^"\n]+)"/i) ||
+                        text.match(/(?:Cấu trúc|Công thức)\s*[:：]\s*["']?([^"'\n]+)["']?/i);
     if (structMatch) data.structure = structMatch[1].trim();
 
-    const expMatch = text.match(/(?:Giải thích|Cách dùng)\s*[:：]\s*["']?([\s\S]*?)(?=(?:Ví dụ|Câu ví dụ|Bài tập|"examples"|exercises|$))/i);
-    if (expMatch) data.explanation = expMatch[1].trim().replace(/["',]+$/, '');
+    // HSK Level
+    const hskMatch = text.match(/"hsk_level"\s*:\s*(\d+)/i) ||
+                     text.match(/(?:HSK|Cấp độ)\s*[:：]\s*(\d+)/i) || 
+                     text.match(/HSK\s*(\d+)/i);
+    if (hskMatch) data.hsk_level = parseInt(hskMatch[1]);
 
-    const exSectionMatch = text.match(/(?:Ví dụ|Câu ví dụ)\s*[:：]\s*([\s\S]*?)(?=(?:Bài tập|$))/i);
-    if (exSectionMatch) {
-      const lines = exSectionMatch[1].trim().split('\n');
-      data.examples = [];
-      lines.forEach(line => {
-        const trimmed = line.trim().replace(/^[-*•\d.]+\s*/, '');
-        if (!trimmed) return;
-        const parts = trimmed.split('|').map(s => s.trim());
-        if (parts.length >= 2) {
-          data.examples.push({
-            hanzi: parts[0],
-            pinyin: parts[1] || '',
-            meaning: parts[2] || ''
-          });
-        }
-      });
+    // Lesson num
+    const lessonMatch = text.match(/"lesson_num"\s*:\s*(\d+)/i) ||
+                        text.match(/(?:Bài số|Bài|Lesson)\s*[:：]\s*(\d+)/i) || 
+                        text.match(/Bài\s*(\d+)/i);
+    if (lessonMatch) data.lesson_num = parseInt(lessonMatch[1]);
+
+    // Lesson title
+    const lessonTitleMatch = text.match(/"lesson_title"\s*:\s*"([^"\n]+)"/i) ||
+                             text.match(/(?:Tên bài|Chủ đề bài)\s*[:：]\s*["']?([^"'\n]+)["']?/i);
+    if (lessonTitleMatch) data.lesson_title = lessonTitleMatch[1].trim();
+
+    // Order index
+    const orderMatch = text.match(/"order_index"\s*:\s*(\d+)/i);
+    if (orderMatch) data.order_index = parseInt(orderMatch[1]);
+
+    // Giải thích: Hỗ trợ trường hợp có ngoặc kép bên trong chuỗi JSON
+    const jsonExpMatch = text.match(/"explanation"\s*:\s*"([\s\S]*?)"\s*,\s*"(?:examples|exercises|hsk_level|lesson_num|lesson_title|order_index|structure|title)"\s*:/i);
+    if (jsonExpMatch) {
+      data.explanation = jsonExpMatch[1].trim();
+    } else {
+      const expMatch = text.match(/(?:Giải thích|Cách dùng)\s*[:：]\s*["']?([\s\S]*?)(?=(?:Ví dụ|Câu ví dụ|Bài tập|"examples"|exercises|$))/i);
+      if (expMatch) data.explanation = expMatch[1].trim().replace(/["',]+$/, '');
     }
 
-    const exerciseJsonMatch = text.match(/\[\s*\{[\s\S]*\}\s*\]/);
+    // Ví dụ
+    const jsonExMatch = text.match(/"examples"\s*:\s*(\[\s*\{[\s\S]*?\}\s*\])/i);
+    if (jsonExMatch) {
+      try {
+        data.examples = JSON.parse(cleanJsonString(jsonExMatch[1]));
+      } catch(e) {
+        const objMatches = jsonExMatch[1].match(/\{[\s\S]*?\}/g);
+        if (objMatches) {
+          data.examples = [];
+          for (const objStr of objMatches) {
+            try {
+              data.examples.push(JSON.parse(cleanJsonString(objStr)));
+            } catch(err) {
+              const h = objStr.match(/"hanzi"\s*:\s*"([^"]*)"/);
+              const p = objStr.match(/"pinyin"\s*:\s*"([^"]*)"/);
+              const m = objStr.match(/"meaning"\s*:\s*"([^"]*)"/);
+              if (h) {
+                data.examples.push({
+                  hanzi: h[1] || '',
+                  pinyin: p ? p[1] : '',
+                  meaning: m ? m[1] : ''
+                });
+              }
+            }
+          }
+        }
+      }
+    } else {
+      const exSectionMatch = text.match(/(?:Ví dụ|Câu ví dụ)\s*[:：]\s*([\s\S]*?)(?=(?:Bài tập|$))/i);
+      if (exSectionMatch) {
+        const lines = exSectionMatch[1].trim().split('\n');
+        data.examples = [];
+        lines.forEach(line => {
+          const trimmed = line.trim().replace(/^[-*•\d.]+\s*/, '');
+          if (!trimmed) return;
+          const parts = trimmed.split('|').map(s => s.trim());
+          if (parts.length >= 2) {
+            data.examples.push({
+              hanzi: parts[0],
+              pinyin: parts[1] || '',
+              meaning: parts[2] || ''
+            });
+          }
+        });
+      }
+    }
+
+    // Bài tập
+    const exerciseJsonMatch = text.match(/"exercises"\s*:\s*(\[\s*\{[\s\S]*\}\s*\])/i) ||
+                              text.match(/\[\s*\{[\s\S]*\}\s*\]/);
     if (exerciseJsonMatch) {
       try {
-        const cleanedEx = cleanJsonString(exerciseJsonMatch[0]);
+        const cleanedEx = cleanJsonString(exerciseJsonMatch[1] || exerciseJsonMatch[0]);
         data.exercises = JSON.parse(cleanedEx);
       } catch(e) {}
     }
