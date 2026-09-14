@@ -225,7 +225,7 @@ tr:hover td{background:#fff5eb}
       <input type="text" id="vocabMeaningSearch" placeholder="Tìm nghĩa..." style="min-width:120px">
       <select id="vocabStatusFilter"><option value="">Tất cả trạng thái</option><option value="0">Mới</option><option value="1">Đang ôn</option><option value="2">Master</option></select>
       <button class="btn btn-jade" onclick="openVocabModal()">+ Thêm mới</button>
-      <button class="btn btn-ghost" id="btnSelectDupesVocab" onclick="autoSelectDuplicateVocab()" title="Tự động tìm các từ bị trùng chữ Hán trong hệ thống để chọn xóa">🔍 Chọn từ trùng Hán tự</button>
+      <button class="btn btn-ghost" id="btnSelectDupesVocab" onclick="autoSelectDuplicateVocab()" title="Tự động tìm các từ bị trùng chữ Hán trong bài đang chọn để xóa">🔍 Chọn từ trùng trong bài</button>
       <button class="btn btn-seal" id="btnBulkDeleteVocab" onclick="bulkDeleteVocab()" style="display:none">🗑️ Xóa <span id="selectedVocabCount">0</span> từ đã chọn</button>
     </div>
     <div class="table-wrap">
@@ -1040,10 +1040,28 @@ function updateBulkDeleteButton() {
 }
 
 function autoSelectDuplicateVocab() {
-  // Tìm các từ bị trùng Hán tự trong toàn bộ allVocab (giữ từ ID nhỏ nhất, chọn các từ trùng xuất hiện sau)
+  const sid = document.getElementById('vocabSessionFilter').value;
+  if (!sid) {
+    toast('Vui lòng chọn bài / session ở bộ lọc trước khi tìm từ trùng!', 'warning');
+    const sessEl = document.getElementById('vocabSessionFilter');
+    if (sessEl) sessEl.focus();
+    return;
+  }
+
+  const sessObj = allSessions.find(s => s.id == sid);
+  const sessName = sessObj ? (sessObj.title || 'Session ' + sid) : 'bài này';
+
+  // Chỉ lấy từ vựng thuộc đúng bài / session đang chọn
+  const currentSessionVocab = allVocab.filter(v => v.session_id == sid);
+  if (!currentSessionVocab.length) {
+    toast(`Bài "${sessName}" chưa có từ vựng nào!`, 'warning');
+    return;
+  }
+
+  // Tìm các từ bị trùng Hán tự CHỈ TRONG BÀI ĐANG CHỌN (giữ từ có ID nhỏ nhất, đánh dấu các từ trùng phía sau để xóa)
   const seen = new Map();
   const dupeIds = [];
-  const sorted = [...allVocab].sort((a, b) => (a.id - b.id));
+  const sorted = [...currentSessionVocab].sort((a, b) => (a.id - b.id));
   sorted.forEach(v => {
     const h = (v.hanzi || '').trim();
     if (!h) return;
@@ -1055,14 +1073,14 @@ function autoSelectDuplicateVocab() {
   });
 
   if (!dupeIds.length) {
-    toast('🎉 Không tìm thấy từ nào bị trùng Hán tự trong cơ sở dữ liệu!');
+    toast(`🎉 Không có từ nào bị trùng Hán tự trong bài "${sessName}"!`);
     return;
   }
 
   selectedVocabIds = new Set(dupeIds);
   renderVocabTable();
   updateBulkDeleteButton();
-  toast(`🔍 Đã phát hiện và chọn ${dupeIds.length} từ bị trùng Hán tự! Bấm nút "Xóa" màu đỏ để dọn dẹp.`);
+  toast(`🔍 Đã phát hiện và chọn ${dupeIds.length} từ bị trùng trong bài "${sessName}"! Bấm nút "Xóa" màu đỏ để xóa.`);
 }
 
 async function bulkDeleteVocab() {
