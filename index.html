@@ -323,8 +323,23 @@ tr:hover td{background:#fff5eb}
       </div>
 
       <div class="tab-content" id="tabPaste">
-        <div style="margin-bottom:12px;display:flex;gap:10px;align-items:center">
-          <label style="font-size:13px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.3px;min-width:80px">Session:</label><select id="pmapSessionSelect" style="padding:8px 12px;border:var(--border-thin);border-radius:2px;font-size:13px;font-weight:600;background:var(--bg-white);color:var(--ink);box-shadow:3px 3px 0 rgba(0,0,0,.12)"></select>
+        <div style="margin-bottom:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:6px">
+            <label style="font-size:13px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.3px">HSK:</label>
+            <select id="pasteHsk" style="padding:8px 12px;border:var(--border-thin);border-radius:2px;font-size:13px;font-weight:600;background:var(--bg-white);color:var(--ink);box-shadow:3px 3px 0 rgba(0,0,0,.12)">
+              <option value="">Tất cả HSK</option>
+              <option value="1">HSK 1</option>
+              <option value="2">HSK 2</option>
+              <option value="3">HSK 3</option>
+              <option value="4">HSK 4</option>
+              <option value="5">HSK 5</option>
+              <option value="6">HSK 6</option>
+            </select>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <label style="font-size:13px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.3px">Bài / Session:</label>
+            <select id="pmapSessionSelect" style="padding:8px 12px;border:var(--border-thin);border-radius:2px;font-size:13px;font-weight:600;background:var(--bg-white);color:var(--ink);box-shadow:3px 3px 0 rgba(0,0,0,.12);min-width:240px"></select>
+          </div>
         </div>
         <textarea id="pasteArea" placeholder="Dán dữ liệu từ vựng tại đây...
 Mỗi dòng một từ, phân cách bởi dấu phẩy/tab/chấm phẩy
@@ -353,8 +368,23 @@ Mỗi dòng một từ, phân cách bởi dấu phẩy/tab/chấm phẩy
       </div>
 
       <div class="tab-content" id="tabForm">
-        <div style="margin-bottom:12px;display:flex;gap:10px;align-items:center">
-          <label>Session:</label><select id="formSession"></select>
+        <div style="margin-bottom:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:6px">
+            <label style="font-size:13px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.3px">HSK:</label>
+            <select id="formHsk" style="padding:8px 12px;border:var(--border-thin);border-radius:2px;font-size:13px;font-weight:600;background:var(--bg-white);color:var(--ink);box-shadow:3px 3px 0 rgba(0,0,0,.12)">
+              <option value="">Tất cả HSK</option>
+              <option value="1">HSK 1</option>
+              <option value="2">HSK 2</option>
+              <option value="3">HSK 3</option>
+              <option value="4">HSK 4</option>
+              <option value="5">HSK 5</option>
+              <option value="6">HSK 6</option>
+            </select>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <label style="font-size:13px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.3px">Bài / Session:</label>
+            <select id="formSession" style="padding:8px 12px;border:var(--border-thin);border-radius:2px;font-size:13px;font-weight:600;background:var(--bg-white);color:var(--ink);box-shadow:3px 3px 0 rgba(0,0,0,.12);min-width:240px"></select>
+          </div>
           <button class="btn btn-ghost" onclick="addFormRow()">+ Thêm dòng</button>
         </div>
         <div class="form-rows" id="formRows"></div>
@@ -676,6 +706,8 @@ function initTabs() {
         t.classList.add('active');
         parent.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
         parent.querySelector('#' + t.dataset.tab).classList.add('active');
+        if (t.dataset.tab === 'tabForm') populateFormImportFilters();
+        if (t.dataset.tab === 'tabPaste') populatePasteSessionFilter();
       });
     });
   });
@@ -857,11 +889,81 @@ async function loadVocabulary() {
 
 function populateSessionDropdowns() {
   const opts = '<option value="">Tất cả Sessions</option>' + allSessions.map(s => `<option value="${s.id}">${s.title || 'Session ' + s.id}</option>`).join('');
-  ['vocabSessionInput','mapSession','pmapSessionSelect','formSession'].forEach(id => {
+  ['vocabSessionInput','mapSession'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.innerHTML = allSessions.map(s => `<option value="${s.id}">${s.title || 'Session ' + s.id}</option>`).join('');
   });
   populateVocabFilters();
+  populateFormImportFilters();
+  populatePasteSessionFilter();
+}
+
+function populateFormImportFilters() {
+  const hskEl = document.getElementById('formHsk');
+  if (!hskEl) return;
+  const savedHsk = localStorage.getItem('admin_import_form_hsk') || '';
+  const savedSess = localStorage.getItem('admin_import_form_session') || '';
+  
+  if (!savedHsk && savedSess) {
+    const sess = allSessions.find(s => s.id == savedSess);
+    if (sess && sess.hsk_level) {
+      hskEl.value = sess.hsk_level;
+      localStorage.setItem('admin_import_form_hsk', sess.hsk_level);
+    }
+  } else if (savedHsk) {
+    hskEl.value = savedHsk;
+  }
+  populateFormSessionList();
+}
+
+function populateFormSessionList() {
+  const hskEl = document.getElementById('formHsk');
+  const sessEl = document.getElementById('formSession');
+  if (!sessEl) return;
+  const hsk = hskEl ? hskEl.value : '';
+  const filtered = hsk ? allSessions.filter(s => s.hsk_level == hsk) : allSessions;
+
+  sessEl.innerHTML = '<option value="">— Chọn bài / session —</option>' +
+    filtered.map(s => {
+      const hskTag = s.hsk_level ? `[HSK ${s.hsk_level}] ` : '';
+      return `<option value="${s.id}">${hskTag}${s.title || 'Session ' + s.id}</option>`;
+    }).join('');
+
+  const savedSess = localStorage.getItem('admin_import_form_session');
+  if (savedSess && filtered.some(s => s.id == savedSess)) {
+    sessEl.value = savedSess;
+  }
+}
+
+function populatePasteSessionFilter() {
+  const hskEl = document.getElementById('pasteHsk');
+  const sessEl = document.getElementById('pmapSessionSelect');
+  if (!sessEl) return;
+  const savedHsk = localStorage.getItem('admin_import_paste_hsk') || '';
+  const savedSess = localStorage.getItem('admin_import_paste_session') || '';
+
+  if (!savedHsk && savedSess) {
+    const sess = allSessions.find(s => s.id == savedSess);
+    if (sess && sess.hsk_level) {
+      if (hskEl) hskEl.value = sess.hsk_level;
+      localStorage.setItem('admin_import_paste_hsk', sess.hsk_level);
+    }
+  } else if (savedHsk && hskEl) {
+    hskEl.value = savedHsk;
+  }
+
+  const hsk = hskEl ? hskEl.value : '';
+  const filtered = hsk ? allSessions.filter(s => s.hsk_level == hsk) : allSessions;
+
+  sessEl.innerHTML = '<option value="">— Chọn bài / session —</option>' +
+    filtered.map(s => {
+      const hskTag = s.hsk_level ? `[HSK ${s.hsk_level}] ` : '';
+      return `<option value="${s.id}">${hskTag}${s.title || 'Session ' + s.id}</option>`;
+    }).join('');
+
+  if (savedSess && filtered.some(s => s.id == savedSess)) {
+    sessEl.value = savedSess;
+  }
 }
 
 // Bộ lọc 2 cấp: HSK (cấp 1) -> Session (cấp 2), nhớ lựa chọn qua localStorage
@@ -1111,12 +1213,63 @@ function renderPagination(containerId, totalPages, current, onChange) {
 let fileParsedRows = [];
 let pasteParsedRows = [];
 
-function loadImportPage() {
+async function loadImportPage() {
+  if (!allSessions || !allSessions.length) {
+    try {
+      allSessions = await sbFetch('sessions', { select: 'id,title,hsk_level', order: 'created_at.desc' });
+    } catch (e) { console.error('Lỗi tải sessions:', e); }
+  }
   populateSessionDropdowns();
-  addFormRow();
-  addFormRow();
-  addFormRow();
+  populateFormImportFilters();
+  populatePasteSessionFilter();
+  if (!document.querySelectorAll('.form-row').length) {
+    addFormRow();
+    addFormRow();
+    addFormRow();
+  }
 }
+
+// Bắt sự kiện chọn HSK và Session của Nhập tay (tabForm)
+document.getElementById('formHsk').addEventListener('change', () => {
+  const hskVal = document.getElementById('formHsk').value;
+  localStorage.setItem('admin_import_form_hsk', hskVal);
+  localStorage.setItem('admin_import_form_session', '');
+  populateFormSessionList();
+});
+
+document.getElementById('formSession').addEventListener('change', () => {
+  const sid = document.getElementById('formSession').value;
+  localStorage.setItem('admin_import_form_session', sid);
+  if (sid) {
+    const sess = allSessions.find(s => s.id == sid);
+    if (sess && sess.hsk_level) {
+      localStorage.setItem('admin_import_form_hsk', sess.hsk_level);
+      const hskEl = document.getElementById('formHsk');
+      if (hskEl && !hskEl.value) hskEl.value = sess.hsk_level;
+    }
+  }
+});
+
+// Bắt sự kiện chọn HSK và Session của Paste văn bản (tabPaste)
+document.getElementById('pasteHsk').addEventListener('change', () => {
+  const hskVal = document.getElementById('pasteHsk').value;
+  localStorage.setItem('admin_import_paste_hsk', hskVal);
+  localStorage.setItem('admin_import_paste_session', '');
+  populatePasteSessionFilter();
+});
+
+document.getElementById('pmapSessionSelect').addEventListener('change', () => {
+  const sid = document.getElementById('pmapSessionSelect').value;
+  localStorage.setItem('admin_import_paste_session', sid);
+  if (sid) {
+    const sess = allSessions.find(s => s.id == sid);
+    if (sess && sess.hsk_level) {
+      localStorage.setItem('admin_import_paste_hsk', sess.hsk_level);
+      const hskEl = document.getElementById('pasteHsk');
+      if (hskEl && !hskEl.value) hskEl.value = sess.hsk_level;
+    }
+  }
+});
 
 function setupMapping(selectIds, headers) {
   const opts = '<option value="">— bỏ qua —</option>' + headers.map(h => `<option value="${h}">${h}</option>`).join('');
@@ -1217,6 +1370,14 @@ function addFormRow() {
 async function importFormData() {
   const sessionId = parseInt(document.getElementById('formSession').value);
   if (!sessionId) { toast('Chọn session!', 'error'); return; }
+
+  // Lưu lại bài học và HSK vừa import vào localStorage
+  localStorage.setItem('admin_import_form_session', sessionId);
+  const curSess = allSessions.find(s => s.id == sessionId);
+  if (curSess && curSess.hsk_level) {
+    localStorage.setItem('admin_import_form_hsk', curSess.hsk_level);
+  }
+
   const rows = document.querySelectorAll('.form-row');
   const batch = [];
   rows.forEach(r => {
@@ -1236,6 +1397,15 @@ async function importFormData() {
 async function doImport(rows, hanziId, pinyinId, meaningId, typeId, sessionId) {
   const sid = parseInt(document.getElementById(sessionId).value);
   if (!sid) { toast('Chọn session!', 'error'); return; }
+
+  if (sessionId === 'pmapSessionSelect') {
+    localStorage.setItem('admin_import_paste_session', sid);
+    const curSess = allSessions.find(s => s.id == sid);
+    if (curSess && curSess.hsk_level) {
+      localStorage.setItem('admin_import_paste_hsk', curSess.hsk_level);
+    }
+  }
+
   const hCol = document.getElementById(hanziId).value;
   const pCol = document.getElementById(pinyinId).value;
   const mCol = document.getElementById(meaningId).value;
