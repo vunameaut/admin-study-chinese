@@ -273,6 +273,14 @@ tr:hover td{background:#fff5eb}
 
   <div class="page" id="page-import">
     <div class="card">
+      <div style="background:#fff8ee;border:2px dashed var(--orange);border-radius:4px;padding:10px 14px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+        <label style="display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--ink);cursor:pointer;user-select:none">
+          <input type="checkbox" id="importSkipDupesDefault" style="width:16px;height:16px;accent-color:var(--orange)">
+          <span>Tự động loại bỏ từ trùng khi import (chỉ thêm từ chưa có vào Session)</span>
+        </label>
+        <span style="font-size:12px;color:var(--ink-faint);font-weight:600">⚡ Tự động lọc bỏ từ trùng Hán tự</span>
+      </div>
+
       <div class="tabs">
         <button class="tab active" data-tab="tabFile">📁 Upload CSV/XLSX</button>
         <button class="tab" data-tab="tabPaste">📋 Paste văn bản</button>
@@ -450,6 +458,49 @@ Mỗi dòng một từ, phân cách bởi dấu phẩy/tab/chấm phẩy
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal('grammarModal')">Hủy</button>
       <button class="btn btn-jade" onclick="saveGrammar()">Lưu</button>
+    </div>
+  </div>
+</div>
+
+<!-- Duplicate Resolution Modal -->
+<div class="modal-overlay" id="duplicateModal">
+  <div class="modal" style="max-width:540px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:22px">⚠️</span>
+        <h3 style="margin-bottom:0;font-size:18px">Phát hiện từ đã có trong Session</h3>
+      </div>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="resolveDuplicateModal('cancel')" style="font-weight:900;font-size:14px;padding:3px 8px" title="Đóng">✕</button>
+    </div>
+    
+    <div style="background:#fff8ee;border:2px solid var(--orange);border-radius:4px;padding:12px 14px;margin-bottom:14px;font-size:13px">
+      <div style="display:flex;gap:14px;flex-wrap:wrap;font-weight:700;margin-bottom:6px">
+        <span>Tổng import: <strong id="dupeTotalCount">0</strong></span>
+        <span style="color:var(--red)">Đã có (trùng): <strong id="dupeFoundCount">0</strong></span>
+        <span style="color:var(--teal)">Từ mới sẽ thêm: <strong id="dupeNewCount">0</strong></span>
+      </div>
+      <p style="color:var(--ink-soft);font-size:12px;margin:0">
+        Bạn có muốn <strong>xóa bỏ các từ trùng</strong> khỏi danh sách import và chỉ thêm các từ mới chưa có vào Session không?
+      </p>
+    </div>
+
+    <div style="margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <label style="font-size:12px;font-weight:700;text-transform:uppercase;color:var(--ink-faint);letter-spacing:.5px">Danh sách từ trùng lặp:</label>
+        <span id="dupeBadgeSummary" style="font-size:11px;font-weight:700;color:var(--red)"></span>
+      </div>
+      <div id="dupeListWrap" style="max-height:150px;overflow-y:auto;border:var(--border-thin);border-radius:4px;padding:8px 10px;background:#fff;display:flex;flex-wrap:wrap;gap:6px">
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:16px">
+      <button type="button" class="btn btn-jade" id="btnSkipDupes" style="justify-content:center;padding:10px 16px;font-size:13px;width:100%">
+        ✨ Bỏ từ trùng (Chỉ thêm <span id="btnSkipCount">0</span> từ mới)
+      </button>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button type="button" class="btn btn-ghost btn-sm" onclick="resolveDuplicateModal('all')">Thêm tất cả (bao gồm từ trùng)</button>
+        <button type="button" class="btn btn-ghost btn-sm" onclick="resolveDuplicateModal('cancel')">Hủy import</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1030,9 +1081,9 @@ async function importFormData() {
     if (hanzi && pinyin && meaning) batch.push({ hanzi, pinyin, meaning, word_type, session_id: sessionId, review_status: 0 });
   });
   if (!batch.length) { toast('Không có dòng hợp lệ!', 'error'); return; }
-  const proceed = await checkDuplicates(batch, sessionId);
-  if (!proceed) return;
-  await batchInsert(batch);
+  const res = await checkDuplicates(batch, sessionId);
+  if (!res || !res.shouldProceed || !res.items || !res.items.length) return;
+  await batchInsert(res.items, res.skippedCount || 0);
 }
 
 // Common import
@@ -1053,25 +1104,116 @@ async function doImport(rows, hanziId, pinyinId, meaningId, typeId, sessionId) {
     if (hanzi && pinyin && meaning) batch.push({ hanzi, pinyin, meaning, word_type, session_id: sid, review_status: 0 });
   });
   if (!batch.length) { toast('Không có dòng hợp lệ!', 'error'); return; }
-  const proceed = await checkDuplicates(batch, sid);
-  if (!proceed) return;
-  await batchInsert(batch);
+  const res = await checkDuplicates(batch, sid);
+  if (!res || !res.shouldProceed || !res.items || !res.items.length) return;
+  await batchInsert(res.items, res.skippedCount || 0);
+}
+
+let _dupeModalResolve = null;
+
+function resolveDuplicateModal(choice) {
+  document.getElementById('duplicateModal').classList.remove('open');
+  if (_dupeModalResolve) {
+    _dupeModalResolve(choice);
+    _dupeModalResolve = null;
+  }
 }
 
 async function checkDuplicates(batch, sessionId) {
-  const existing = allVocab.filter(v => v.session_id === sessionId).map(v => v.hanzi.trim());
-  const dupes = batch.filter(b => existing.includes(b.hanzi.trim()));
-  if (!dupes.length) return true;
-  const uniqueDupes = [...new Set(dupes.map(d => d.hanzi))].join(', ');
+  // Lấy dữ liệu từ vựng mới nhất của session này từ Supabase để so sánh chính xác thời gian thực
+  let existingWords = [];
+  try {
+    const res = await sbFetch('vocabulary', { select: 'hanzi', filter: { 'session_id': 'eq.' + sessionId } });
+    existingWords = (res || []).map(v => (v.hanzi || '').trim());
+  } catch (e) {
+    existingWords = allVocab.filter(v => v.session_id === sessionId).map(v => (v.hanzi || '').trim());
+  }
+  const existingSet = new Set(existingWords.filter(Boolean));
+
+  const dupes = [];
+  const nonDupes = [];
+  const seenInBatch = new Set();
+
+  for (const item of batch) {
+    const h = (item.hanzi || '').trim();
+    if (existingSet.has(h)) {
+      dupes.push(item);
+    } else if (seenInBatch.has(h)) {
+      // Từ lặp lại nhiều lần ngay trong tệp import
+      dupes.push(item);
+    } else {
+      seenInBatch.add(h);
+      nonDupes.push(item);
+    }
+  }
+
+  // Không có từ trùng, tiếp tục import toàn bộ
+  if (!dupes.length) {
+    return { shouldProceed: true, items: batch, skippedCount: 0 };
+  }
+
+  // Nếu người dùng đã tích chọn tùy chọn tự động loại bỏ từ trùng
+  const autoSkip = document.getElementById('importSkipDupesDefault') && document.getElementById('importSkipDupesDefault').checked;
+  if (autoSkip) {
+    if (!nonDupes.length) {
+      toast('Tất cả ' + dupes.length + ' từ import đều đã tồn tại trong session này!', 'error');
+      return { shouldProceed: false, items: [] };
+    }
+    return { shouldProceed: true, items: nonDupes, skippedCount: dupes.length };
+  }
+
+  // Hiển thị modal để người dùng chọn
   return new Promise(resolve => {
-    showConfirm(
-      '⚠️ Phát hiện ' + dupes.length + ' từ đã có trong session:\n\n' + uniqueDupes + '\n\nBạn có muốn thêm tất cả (bao gồm từ trùng)?',
-      yes => resolve(yes)
-    );
+    _dupeModalResolve = (choice) => {
+      if (choice === 'skip') {
+        if (!nonDupes.length) {
+          toast('Không có từ mới nào để thêm! (Tất cả ' + dupes.length + ' từ đều đã tồn tại trong session)', 'error');
+          resolve({ shouldProceed: false, items: [] });
+        } else {
+          resolve({ shouldProceed: true, items: nonDupes, skippedCount: dupes.length });
+        }
+      } else if (choice === 'all') {
+        resolve({ shouldProceed: true, items: batch, skippedCount: 0 });
+      } else {
+        resolve({ shouldProceed: false, items: [] });
+      }
+    };
+
+    document.getElementById('dupeTotalCount').textContent = batch.length;
+    document.getElementById('dupeFoundCount').textContent = dupes.length;
+    document.getElementById('dupeNewCount').textContent = nonDupes.length;
+    document.getElementById('btnSkipCount').textContent = nonDupes.length;
+
+    const uniqueDupeHanzis = [...new Set(dupes.map(d => (d.hanzi || '').trim()))];
+    document.getElementById('dupeBadgeSummary').textContent = uniqueDupeHanzis.length + ' từ khác nhau';
+
+    const listWrap = document.getElementById('dupeListWrap');
+    listWrap.innerHTML = uniqueDupeHanzis.map(h => {
+      const match = dupes.find(d => (d.hanzi || '').trim() === h);
+      const meaning = match && match.meaning ? ` : ${match.meaning}` : '';
+      return `<span class="badge" style="background:#fff3e0;border:1.5px solid var(--orange);color:var(--ink);font-size:12px;padding:4px 8px;font-family:'Noto Serif SC',sans-serif;text-transform:none"><strong>${h}</strong><span style="font-family:'Inter',sans-serif;font-weight:500;font-size:11px;color:var(--ink-soft)">${meaning}</span></span>`;
+    }).join('');
+
+    const btnSkip = document.getElementById('btnSkipDupes');
+    if (nonDupes.length === 0) {
+      btnSkip.disabled = true;
+      btnSkip.style.opacity = '0.5';
+      btnSkip.style.cursor = 'not-allowed';
+      btnSkip.innerHTML = '⚠️ Tất cả các từ đều đã tồn tại (0 từ mới)';
+      btnSkip.onclick = null;
+    } else {
+      btnSkip.disabled = false;
+      btnSkip.style.opacity = '1';
+      btnSkip.style.cursor = 'pointer';
+      btnSkip.innerHTML = '✨ Bỏ qua từ trùng (Chỉ thêm <strong>' + nonDupes.length + '</strong> từ mới)';
+      btnSkip.onclick = () => resolveDuplicateModal('skip');
+    }
+
+    document.getElementById('duplicateModal').classList.add('open');
   });
 }
 
-async function batchInsert(batch) {
+async function batchInsert(batch, skippedCount = 0) {
   try {
     const BATCH_SIZE = 500;
     let inserted = 0;
@@ -1081,7 +1223,17 @@ async function batchInsert(batch) {
       const res = await sbFetch('vocabulary', { method: 'POST', body: chunk });
       inserted += (Array.isArray(res) ? res.length : 1);
     }
-    toast('Đã import ' + inserted + ' từ vựng!');
+    if (skippedCount > 0) {
+      toast('Đã import ' + inserted + ' từ mới thành công! (Đã bỏ qua ' + skippedCount + ' từ trùng)');
+    } else {
+      toast('Đã import ' + inserted + ' từ vựng!');
+    }
+    // Tự động làm mới cache allVocab để các trang khác lập tức cập nhật
+    try {
+      allVocab = await sbFetch('vocabulary', { select: 'id,session_id,hanzi,pinyin,word_type,meaning,review_status,created_at,last_reviewed_at', order: 'created_at.desc' });
+    } catch (err) {
+      console.warn('Could not refresh allVocab:', err);
+    }
   } catch (e) {
     console.error('Import error:', e);
     toast('Lỗi import: ' + e.message, 'error');
