@@ -297,7 +297,7 @@ tr:hover td{background:#fff5eb}
     <div class="card">
       <div style="background:#fff8ee;border:2px dashed var(--orange);border-radius:4px;padding:10px 14px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
         <label style="display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--ink);cursor:pointer;user-select:none">
-          <input type="checkbox" id="importSkipDupesDefault" style="width:16px;height:16px;accent-color:var(--orange)">
+          <input type="checkbox" id="importSkipDupesDefault" checked style="width:16px;height:16px;accent-color:var(--orange)">
           <span>Tự động loại bỏ từ trùng khi import (chỉ thêm từ chưa có vào Session)</span>
         </label>
         <span style="font-size:12px;color:var(--ink-faint);font-weight:600">⚡ Tự động lọc bỏ từ trùng Hán tự</span>
@@ -1245,6 +1245,20 @@ async function loadImportPage() {
     addFormRow();
     addFormRow();
   }
+}
+
+// Tự động loại bỏ từ trùng khi import (mặc định bật)
+const skipDupesCb = document.getElementById('importSkipDupesDefault');
+if (skipDupesCb) {
+  const savedSkip = localStorage.getItem('admin_import_skip_dupes');
+  if (savedSkip !== null) {
+    skipDupesCb.checked = savedSkip === 'true';
+  } else {
+    skipDupesCb.checked = true;
+  }
+  skipDupesCb.addEventListener('change', () => {
+    localStorage.setItem('admin_import_skip_dupes', skipDupesCb.checked);
+  });
 }
 
 // Bắt sự kiện chọn HSK và Session của Nhập tay (tabForm)
