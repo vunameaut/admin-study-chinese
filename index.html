@@ -564,10 +564,11 @@ Mỗi dòng một từ, phân cách bởi dấu phẩy/tab/chấm phẩy
       </div>
     </div>
 
-    <!-- Actions: Hỏi người dùng import tất cả hay chỉ import từ chưa có -->
+    <!-- Actions: Hỏi người dùng import tất cả hay chỉ import từ chưa có hay cập nhật -->
     <div style="display:flex;gap:10px;justify-content:flex-end;align-items:center;margin-top:18px;flex-wrap:wrap">
       <button type="button" class="btn btn-ghost" onclick="resolveDuplicateModal('cancel')">✕ Hủy</button>
-      <button type="button" class="btn btn-ghost" id="btnImportAll" onclick="resolveDuplicateModal('all')" style="border-color:var(--orange);color:var(--orange);font-weight:700">⚡ Import tất cả (<span id="btnImportAllCount">0</span> từ)</button>
+      <button type="button" class="btn btn-ghost" id="btnImportAll" onclick="resolveDuplicateModal('all')" style="border-color:var(--orange);color:var(--orange);font-weight:700">⚡ Vẫn thêm tất cả (<span id="btnImportAllCount">0</span> từ)</button>
+      <button type="button" class="btn btn-ghost" id="btnUpdateExisting" onclick="onConfirmUpdateExisting()" style="border-color:var(--teal);color:var(--teal);font-weight:800;display:none">🔄 Cập nhật nội dung từ đã có (<span id="btnUpdateCount">0</span> từ)</button>
       <button type="button" class="btn btn-jade" id="btnSkipDupes" onclick="onConfirmImportNewOnly()" style="font-weight:800">
         ✨ Chỉ import những từ chưa có (<span id="btnSkipCount">0</span> từ)
       </button>
@@ -628,7 +629,13 @@ function toast(msg, type='success') {
   setTimeout(() => el.remove(), dur);
 }
 
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function closeModal(id) {
+  if (id === 'duplicateModal') {
+    resolveDuplicateModal('cancel');
+  } else {
+    document.getElementById(id).classList.remove('open');
+  }
+}
 
 function formatDate(d) {
   if (!d) return '—';
@@ -1356,7 +1363,39 @@ document.getElementById('pasteArea').addEventListener('input', function() {
 });
 
 async function importPasteData() {
-  await doImport(pasteParsedRows, 'pmapHanzi', 'pmapPinyin', 'pmapMeaning', 'pmapType', 'pmapSessionSelect');
+  const text = document.getElementById('pasteArea').value.trim();
+  if (!text) { toast('Vui lòng dán dữ liệu từ vựng vào ô trước!', 'error'); return; }
+  let delim = ',';
+  if (text.includes('\t')) delim = '\t';
+  else if (text.includes(';')) delim = ';';
+  const lines = text.split('\n').filter(l => l.trim());
+  const headers = ['Cột 1','Cột 2','Cột 3','Cột 4','Cột 5'];
+  const maxCols = Math.max(...lines.map(l => l.split(delim).length));
+  const actualHeaders = headers.slice(0, maxCols);
+  const rows = lines.map((line, i) => {
+    const cols = line.split(delim);
+    const obj = {};
+    headers.forEach((h, j) => obj[h] = (cols[j] || '').trim());
+    return obj;
+  });
+  pasteParsedRows = rows;
+
+  const pmapHanzi = document.getElementById('pmapHanzi');
+  if (!pmapHanzi.value || !pmapHanzi.children.length) {
+    setupMapping(['pmapHanzi','pmapPinyin','pmapMeaning','pmapType'], actualHeaders);
+    if (actualHeaders.length >= 4) {
+      document.getElementById('pmapHanzi').value = actualHeaders[0];
+      document.getElementById('pmapPinyin').value = actualHeaders[1];
+      document.getElementById('pmapType').value = actualHeaders[2];
+      document.getElementById('pmapMeaning').value = actualHeaders[3];
+    } else if (actualHeaders.length >= 3) {
+      document.getElementById('pmapHanzi').value = actualHeaders[0];
+      document.getElementById('pmapPinyin').value = actualHeaders[1];
+      document.getElementById('pmapMeaning').value = actualHeaders[2];
+    }
+  }
+  document.getElementById('pasteMapping').style.display = 'flex';
+  await doImport(rows, 'pmapHanzi', 'pmapPinyin', 'pmapMeaning', 'pmapType', 'pmapSessionSelect');
 }
 
 // Form tab
@@ -1396,10 +1435,27 @@ async function importFormData() {
     const word_type = r.querySelector('[data-field="type"]').value.trim() || null;
     if (hanzi && pinyin && meaning) batch.push({ hanzi, pinyin, meaning, word_type, session_id: sessionId, review_status: 0 });
   });
-  if (!batch.length) { toast('Không có dòng hợp lệ!', 'error'); return; }
+  if (!batch.length) { toast('Không có dòng hợp lệ để import!', 'error'); return; }
   const res = await checkDuplicates(batch, sessionId);
-  if (!res || !res.shouldProceed || !res.items || !res.items.length) return;
-  await batchInsert(res.items, res.skippedCount || 0);
+  if (!res || !res.shouldProceed) return;
+
+  if (res.action === 'update') {
+    let updateCount = 0;
+    if (res.updateItems && res.updateItems.length) {
+      updateCount = await batchUpdate(res.updateItems);
+    }
+    let insertCount = 0;
+    if (res.insertItems && res.insertItems.length) {
+      await batchInsert(res.insertItems, 0, false);
+      insertCount = res.insertItems.length;
+    }
+    toast(`Đã cập nhật ${updateCount} từ đã có${insertCount ? ' và thêm ' + insertCount + ' từ mới' : ''} thành công!`);
+    await refreshVocabCache();
+  } else if (res.items && res.items.length) {
+    await batchInsert(res.items, res.skippedCount || 0);
+  } else if (res.skippedCount > 0) {
+    toast(`Tất cả ${res.skippedCount} từ đều đã tồn tại trong bài học này!`, 'info');
+  }
 }
 
 // Common import
@@ -1418,7 +1474,7 @@ async function doImport(rows, hanziId, pinyinId, meaningId, typeId, sessionId) {
   const hCol = document.getElementById(hanziId).value;
   const pCol = document.getElementById(pinyinId).value;
   const mCol = document.getElementById(meaningId).value;
-  const tCol = document.getElementById(typeId).value;
+  const tCol = document.getElementById(typeId) ? document.getElementById(typeId).value : '';
   if (!hCol || !pCol || !mCol) { toast('Ánh xạ Hán tự, Pinyin, Nghĩa!', 'error'); return; }
   const batch = [];
   rows.forEach(r => {
@@ -1428,13 +1484,31 @@ async function doImport(rows, hanziId, pinyinId, meaningId, typeId, sessionId) {
     const word_type = tCol ? (r[tCol] || '').trim() || null : null;
     if (hanzi && pinyin && meaning) batch.push({ hanzi, pinyin, meaning, word_type, session_id: sid, review_status: 0 });
   });
-  if (!batch.length) { toast('Không có dòng hợp lệ!', 'error'); return; }
+  if (!batch.length) { toast('Không có dòng hợp lệ để import!', 'error'); return; }
   const res = await checkDuplicates(batch, sid);
-  if (!res || !res.shouldProceed || !res.items || !res.items.length) return;
-  await batchInsert(res.items, res.skippedCount || 0);
+  if (!res || !res.shouldProceed) return;
+
+  if (res.action === 'update') {
+    let updateCount = 0;
+    if (res.updateItems && res.updateItems.length) {
+      updateCount = await batchUpdate(res.updateItems);
+    }
+    let insertCount = 0;
+    if (res.insertItems && res.insertItems.length) {
+      await batchInsert(res.insertItems, 0, false);
+      insertCount = res.insertItems.length;
+    }
+    toast(`Đã cập nhật ${updateCount} từ đã có${insertCount ? ' và thêm ' + insertCount + ' từ mới' : ''} thành công!`);
+    await refreshVocabCache();
+  } else if (res.items && res.items.length) {
+    await batchInsert(res.items, res.skippedCount || 0);
+  } else if (res.skippedCount > 0) {
+    toast(`Tất cả ${res.skippedCount} từ đều đã tồn tại trong bài học này!`, 'info');
+  }
 }
 
 let _dupeModalResolve = null;
+let _currentDupes = [];
 let _currentNonDupes = [];
 
 function resolveDuplicateModal(choice) {
@@ -1474,7 +1548,7 @@ function updateModalImportButtonCount() {
   const countSpan = document.getElementById('btnSkipCount');
   const btn = document.getElementById('btnSkipDupes');
   if (countSpan) countSpan.textContent = cbs.length;
-  if (btn) {
+  if (btn && _currentNonDupes.length > 0) {
     if (cbs.length === 0) {
       btn.disabled = true;
       btn.style.opacity = '0.5';
@@ -1490,6 +1564,17 @@ function updateModalImportButtonCount() {
 function onConfirmImportNewOnly() {
   const cbs = document.querySelectorAll('.modal-nondupe-cb:checked');
   const selectedNewItems = Array.from(cbs).map(cb => _currentNonDupes[parseInt(cb.dataset.idx)]).filter(Boolean);
+  if (!_currentNonDupes.length) {
+    const updatableDupes = _currentDupes.filter(d => d.existId);
+    const changedDupes = updatableDupes.filter(d => d.isChanged);
+    if (changedDupes.length > 0) {
+      toast(`Không có từ mới nào. Hãy chọn nút "Cập nhật nội dung" để lưu ${changedDupes.length} từ vừa sửa!`, 'info');
+    } else {
+      toast('Tất cả từ đều đã có trong bài này! Không có từ mới nào để thêm.', 'info');
+    }
+    resolveDuplicateModal('cancel');
+    return;
+  }
   if (!selectedNewItems.length) {
     toast('Chưa chọn từ mới nào để import!', 'error');
     return;
@@ -1497,17 +1582,24 @@ function onConfirmImportNewOnly() {
   resolveDuplicateModal({ action: 'skip', items: selectedNewItems });
 }
 
+function onConfirmUpdateExisting() {
+  const updatableDupes = _currentDupes.filter(d => d.existId);
+  const changedDupes = updatableDupes.filter(d => d.isChanged);
+  const itemsToUpdate = changedDupes.length > 0 ? changedDupes : updatableDupes;
+  resolveDuplicateModal({ action: 'update', dupes: itemsToUpdate, newItems: _currentNonDupes });
+}
+
 async function checkDuplicates(batch, sessionId) {
   // Chỉ lấy từ vựng hiện có trong bài đang chọn (sessionId) để đối chiếu
   let sessionExisting = [];
   try {
-    const res = await sbFetch('vocabulary', { select: 'id,hanzi,session_id', filter: { 'session_id': 'eq.' + sessionId } });
+    const res = await sbFetch('vocabulary', { select: 'id,hanzi,pinyin,meaning,word_type,session_id', filter: { 'session_id': 'eq.' + sessionId } });
     sessionExisting = res || [];
   } catch (e) {
     sessionExisting = (allVocab || []).filter(v => v.session_id == sessionId);
   }
 
-  // Tạo map: hanzi.trim() -> { session_id, id }
+  // Tạo map: hanzi.trim() -> { id, hanzi, pinyin, meaning, word_type }
   const existingMap = new Map();
   for (const v of sessionExisting) {
     const h = (v.hanzi || '').trim();
@@ -1526,7 +1618,11 @@ async function checkDuplicates(batch, sessionId) {
     const h = (item.hanzi || '').trim();
     if (!h) continue;
     if (existingMap.has(h)) {
-      dupes.push({ ...item, existSessionName: sessName, isSameSession: true });
+      const existWord = existingMap.get(h);
+      const isChanged = ((existWord.pinyin || '').trim() !== (item.pinyin || '').trim()) ||
+                        ((existWord.meaning || '').trim() !== (item.meaning || '').trim()) ||
+                        ((existWord.word_type || '').trim() !== (item.word_type || '').trim());
+      dupes.push({ ...item, existId: existWord.id, isChanged, existSessionName: sessName, isSameSession: true });
     } else if (seenInBatch.has(h)) {
       // Từ lặp lại nhiều lần ngay trong chính dữ liệu import
       dupes.push({ ...item, existSessionName: 'Lặp lại trong dữ liệu import', isSameSession: true });
@@ -1535,6 +1631,7 @@ async function checkDuplicates(batch, sessionId) {
       nonDupes.push(item);
     }
   }
+  _currentDupes = dupes;
   _currentNonDupes = nonDupes;
 
   // Nếu trong bài này KHÔNG có từ nào trùng -> import trực tiếp tất cả
@@ -1543,14 +1640,16 @@ async function checkDuplicates(batch, sessionId) {
   }
 
   // Nếu có từ trùng trong bài này -> Hiển thị modal để người dùng xem từ không trùng và hỏi:
-  // "Import tất cả" hay "Chỉ import những từ chưa có"
+  // "Import tất cả" hay "Chỉ import những từ chưa có" hay "Cập nhật từ đã có"
   return new Promise(resolve => {
     _dupeModalResolve = (choice) => {
       if (typeof choice === 'object' && choice.action === 'skip') {
         const skippedTotal = dupes.length + (nonDupes.length - choice.items.length);
-        resolve({ shouldProceed: true, items: choice.items, skippedCount: skippedTotal });
+        resolve({ shouldProceed: true, action: 'skip', items: choice.items, skippedCount: skippedTotal });
+      } else if (typeof choice === 'object' && choice.action === 'update') {
+        resolve({ shouldProceed: true, action: 'update', updateItems: choice.dupes, insertItems: choice.newItems });
       } else if (choice === 'all') {
-        resolve({ shouldProceed: true, items: batch, skippedCount: 0 });
+        resolve({ shouldProceed: true, action: 'all', items: batch, skippedCount: 0 });
       } else {
         resolve({ shouldProceed: false, items: [] });
       }
@@ -1599,6 +1698,7 @@ async function checkDuplicates(batch, sessionId) {
     document.getElementById('dupeBadgeSummary').textContent = dupes.length + ' từ trùng';
     dupeWrap.innerHTML = dupes.map((item, idx) => {
       const typeTag = item.word_type ? `<span class="badge" style="background:#ffe5e5;border:1px solid var(--red);color:var(--red);font-size:10px;padding:1px 6px;margin-left:6px">${item.word_type}</span>` : '';
+      const changedTag = item.isChanged ? `<span class="badge" style="background:#e6f7ff;border:1px solid #1890ff;color:#096dd9;font-size:10px;padding:1px 6px;margin-left:4px">Đã sửa nội dung</span>` : '';
       return `
         <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 8px;border-bottom:1px solid #f0f0f0;font-size:13px;background:#fff8f8">
           <div style="display:flex;align-items:center;gap:6px">
@@ -1606,6 +1706,7 @@ async function checkDuplicates(batch, sessionId) {
             <strong style="font-family:'Noto Serif SC',serif;font-size:16px;color:var(--red)">${item.hanzi}</strong>
             <span style="font-style:italic;color:#666;margin-left:4px">${item.pinyin || ''}</span>
             ${typeTag}
+            ${changedTag}
           </div>
           <div style="font-weight:600;color:var(--ink-soft);text-align:right;max-width:45%">${item.meaning || ''} <span style="font-size:11px;color:var(--red);margin-left:4px">(Đã có trong bài)</span></div>
         </div>
@@ -1620,27 +1721,58 @@ async function checkDuplicates(batch, sessionId) {
     const dupeModalDesc = document.getElementById('dupeModalDesc');
     const btnSkip = document.getElementById('btnSkipDupes');
     const btnAll = document.getElementById('btnImportAll');
+    const btnUpdate = document.getElementById('btnUpdateExisting');
 
     dupeFoundSpan.style.display = 'inline';
     tabBtnDupes.style.display = 'inline-flex';
     dupeModalIcon.textContent = '⚠️';
     dupeModalTitle.textContent = `Phát hiện từ đã có trong bài "${sessName}"`;
-    dupeModalDesc.innerHTML = `Có <strong>${dupes.length}</strong> từ đã có trong bài này. Dưới đây là danh sách <strong>${nonDupes.length} từ chưa có</strong>. Bạn muốn import như thế nào?`;
-    
     btnAll.style.display = 'inline-flex';
-    btnAll.innerHTML = `⚡ Import tất cả (${batch.length} từ)`;
+    btnAll.innerHTML = `⚡ Vẫn thêm tất cả (${batch.length} từ)`;
+
+    const updatableDupes = dupes.filter(d => d.existId);
+    const changedDupes = updatableDupes.filter(d => d.isChanged);
+    const hasUpdates = changedDupes.length > 0 || (nonDupes.length === 0 && updatableDupes.length > 0);
+
+    if (changedDupes.length > 0) {
+      dupeModalDesc.innerHTML = `Phát hiện <strong>${changedDupes.length}</strong> từ đã có trong bài nhưng có <strong>nội dung vừa sửa</strong> (pinyin/nghĩa/loại từ). Bấm nút <strong>"Cập nhật nội dung"</strong> màu xanh bên dưới để lưu thay đổi!`;
+    } else if (nonDupes.length === 0) {
+      dupeModalDesc.innerHTML = `Tất cả <strong>${dupes.length}</strong> từ đều đã có trong bài này và không có nội dung nào thay đổi.`;
+    } else {
+      dupeModalDesc.innerHTML = `Có <strong>${dupes.length}</strong> từ đã có trong bài này. Dưới đây là danh sách <strong>${nonDupes.length} từ chưa có</strong>. Bạn muốn import như thế nào?`;
+    }
+
+    if (btnUpdate) {
+      if (hasUpdates) {
+        btnUpdate.style.display = 'inline-flex';
+        const labelCount = changedDupes.length > 0 ? changedDupes.length : updatableDupes.length;
+        btnUpdate.innerHTML = `🔄 Cập nhật nội dung cho <strong>${labelCount}</strong> từ đã có`;
+      } else {
+        btnUpdate.style.display = 'none';
+      }
+    }
 
     if (nonDupes.length === 0) {
-      btnSkip.disabled = true;
-      btnSkip.style.opacity = '0.5';
-      btnSkip.style.cursor = 'not-allowed';
-      btnSkip.innerHTML = '⚠️ Tất cả các từ đều đã có trong bài này (0 từ mới)';
+      btnSkip.disabled = false;
+      btnSkip.style.opacity = '0.7';
+      btnSkip.style.cursor = 'pointer';
+      btnSkip.className = 'btn btn-ghost';
+      btnSkip.innerHTML = '✨ Chỉ thêm từ mới (0 từ mới)';
+
+      if (btnUpdate && hasUpdates) {
+        btnUpdate.className = 'btn btn-jade';
+      }
       switchDupeModalTab('dupes');
     } else {
       btnSkip.disabled = false;
       btnSkip.style.opacity = '1';
       btnSkip.style.cursor = 'pointer';
+      btnSkip.className = 'btn btn-jade';
       btnSkip.innerHTML = `✨ Chỉ import những từ chưa có (<strong>${nonDupes.length}</strong> từ)`;
+
+      if (btnUpdate) {
+        btnUpdate.className = 'btn btn-ghost';
+      }
       switchDupeModalTab('nonDupes');
     }
 
@@ -1648,7 +1780,39 @@ async function checkDuplicates(batch, sessionId) {
   });
 }
 
-async function batchInsert(batch, skippedCount = 0) {
+async function batchUpdate(items) {
+  let count = 0;
+  for (const it of items) {
+    if (it.existId) {
+      try {
+        await sbFetch('vocabulary', {
+          method: 'PATCH',
+          filter: { 'id': 'eq.' + it.existId },
+          body: {
+            pinyin: it.pinyin,
+            meaning: it.meaning,
+            word_type: it.word_type || null
+          }
+        });
+        count++;
+      } catch (e) {
+        console.error('Error updating word id ' + it.existId, e);
+      }
+    }
+  }
+  return count;
+}
+
+async function refreshVocabCache() {
+  try {
+    allVocab = await sbFetch('vocabulary', { select: 'id,session_id,hanzi,pinyin,word_type,meaning,review_status,created_at,last_reviewed_at', order: 'created_at.desc' });
+    if (currentPage === 'vocabulary') renderVocabTable();
+  } catch (err) {
+    console.warn('Could not refresh allVocab:', err);
+  }
+}
+
+async function batchInsert(batch, skippedCount = 0, showToast = true) {
   try {
     const BATCH_SIZE = 500;
     let inserted = 0;
@@ -1658,18 +1822,14 @@ async function batchInsert(batch, skippedCount = 0) {
       const res = await sbFetch('vocabulary', { method: 'POST', body: chunk });
       inserted += (Array.isArray(res) ? res.length : 1);
     }
-    if (skippedCount > 0) {
-      toast('Đã import ' + inserted + ' từ mới thành công! (Đã bỏ qua ' + skippedCount + ' từ đã có)');
-    } else {
-      toast('Đã import ' + inserted + ' từ vựng!');
+    if (showToast) {
+      if (skippedCount > 0) {
+        toast('Đã import ' + inserted + ' từ mới thành công! (Đã bỏ qua ' + skippedCount + ' từ đã có)');
+      } else {
+        toast('Đã import ' + inserted + ' từ vựng thành công!');
+      }
     }
-    // Tự động làm mới cache allVocab để các trang khác lập tức cập nhật
-    try {
-      allVocab = await sbFetch('vocabulary', { select: 'id,session_id,hanzi,pinyin,word_type,meaning,review_status,created_at,last_reviewed_at', order: 'created_at.desc' });
-      if (currentPage === 'vocabulary') renderVocabTable();
-    } catch (err) {
-      console.warn('Could not refresh allVocab:', err);
-    }
+    await refreshVocabCache();
   } catch (e) {
     console.error('Import error:', e);
     toast('Lỗi import: ' + e.message, 'error');
@@ -2263,7 +2423,11 @@ document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.modal-overlay').forEach(overlay => {
     overlay.addEventListener('click', (e) => {
       if (e.target === overlay) {
-        overlay.classList.remove('open');
+        if (overlay.id === 'duplicateModal') {
+          resolveDuplicateModal('cancel');
+        } else {
+          overlay.classList.remove('open');
+        }
       }
     });
   });
