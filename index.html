@@ -226,7 +226,7 @@ tr:hover td{background:#fff5eb}
       <select id="vocabStatusFilter"><option value="">Tất cả trạng thái</option><option value="0">Mới</option><option value="1">Đang ôn</option><option value="2">Master</option></select>
       <button class="btn btn-jade" onclick="openVocabModal()">+ Thêm mới</button>
     </div>
-    <div class="table-wrap"><table><thead><tr><th>ID</th><th>Hán tự</th><th>Pinyin</th><th>Từ loại</th><th>Nghĩa</th><th>HSK</th><th>Session</th><th>Trạng thái</th><th>Lần ôn</th><th></th></tr></thead><tbody id="vocabTbody"></tbody></table></div>
+    <div class="table-wrap"><table><thead><tr><th>ID</th><th>Hán tự</th><th>Pinyin</th><th>Từ loại</th><th>Nghĩa</th><th>HSK</th><th>Session</th><th>Trạng thái</th><th>Lần ôn</th><th>Ngày tạo</th><th></th></tr></thead><tbody id="vocabTbody"></tbody></table></div>
     <div class="pagination" id="vocabPagination"></div>
   </div>
 
@@ -892,6 +892,7 @@ function renderVocabTable() {
       <td>${sess ? (sess.title || 'Session ' + sess.id) : '?'}</td>
       <td>${statusBadge(v.review_status)}</td>
       <td>${formatDate(v.last_reviewed_at)}</td>
+      <td>${formatDate(v.created_at)}</td>
       <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openVocabModal(${v.id})">Sửa</button> <button class="btn btn-seal btn-sm" onclick="event.stopPropagation();deleteVocab(${v.id})">Xóa</button></td>
     </tr>`;
   }).join('');
