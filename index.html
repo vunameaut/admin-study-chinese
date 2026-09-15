@@ -299,6 +299,7 @@ tr:hover td{background:#fff5eb}
         <button class="tab active" data-tab="tabFile">📁 Upload CSV/XLSX</button>
         <button class="tab" data-tab="tabPaste">📋 Paste văn bản</button>
         <button class="tab" data-tab="tabForm">✏️ Nhập tay</button>
+        <button class="tab" data-tab="tabGrammar">💡 Import Ngữ pháp</button>
       </div>
 
       <div class="tab-content active" id="tabFile">
@@ -382,6 +383,28 @@ Mỗi dòng một từ, phân cách bởi dấu phẩy/tab/chấm phẩy
         <div class="form-rows" id="formRows"></div>
         <div style="margin-top:16px"><button class="btn btn-jade" onclick="importFormData()">Import tất cả</button></div>
       </div>
+
+      <!-- Tab Import Ngữ Pháp -->
+      <div class="tab-content" id="tabGrammar">
+        <div style="background:#fffaf0;border:2px dashed var(--orange);border-radius:4px;padding:16px;margin-bottom:16px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <strong style="font-size:14px;color:var(--orange);display:flex;align-items:center;gap:6px">
+              <span>⚡ Dán dữ liệu Ngữ pháp từ Bot AI (JSON hoặc Văn bản có nhãn)</span>
+            </strong>
+            <div style="display:flex;gap:8px">
+              <button type="button" class="btn btn-ghost btn-sm" onclick="previewGrammarFromImportTab()" style="background:#fff">👁️ Xem trước</button>
+              <button type="button" class="btn btn-jade btn-sm" onclick="openGrammarModalWithAiData()">⚡ Điền Form & Chi tiết</button>
+            </div>
+          </div>
+          <textarea id="importGrammarAiPasteInput" rows="6" 
+            placeholder="Dán toàn bộ kết quả bot AI trả về vào đây (JSON hoặc văn bản)...&#10;Bấm '👁️ Xem trước' để duyệt ngay giao diện bài học, hoặc '⚡ Điền Form & Chi tiết' để chỉnh sửa!"
+            style="font-family:monospace;font-size:13px;width:100%"></textarea>
+          <div style="margin-top:10px;display:flex;justify-content:flex-end;gap:8px">
+            <button type="button" class="btn btn-ghost" onclick="previewGrammarFromImportTab()">👁️ Xem trước ngữ pháp</button>
+            <button type="button" class="btn btn-jade" onclick="openGrammarModalWithAiData()">⚡ Mở Form chỉnh sửa & Lưu</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -432,7 +455,10 @@ Mỗi dòng một từ, phân cách bởi dấu phẩy/tab/chấm phẩy
         <strong style="font-size:13px;color:var(--orange);display:flex;align-items:center;gap:6px">
           <span>⚡ Dán nhanh dữ liệu từ Bot AI (Tự động điền khi Paste)</span>
         </strong>
-        <button type="button" class="btn btn-jade btn-sm" onclick="parseAndApplyAiGrammar()">⚡ Phân tích & Điền Form</button>
+        <div style="display:flex;gap:6px">
+          <button type="button" class="btn btn-ghost btn-sm" onclick="previewGrammar()" style="background:#fff" title="Xem trước giao diện">👁️ Xem trước</button>
+          <button type="button" class="btn btn-jade btn-sm" onclick="parseAndApplyAiGrammar()">⚡ Phân tích & Điền Form</button>
+        </div>
       </div>
       <textarea id="grammarAiPasteInput" rows="2" 
         placeholder="Dán toàn bộ kết quả bot AI trả về vào đây (JSON hoặc văn bản)... Hệ thống sẽ tự động nhận diện và điền form ngay!" 
@@ -499,9 +525,34 @@ Mỗi dòng một từ, phân cách bởi dấu phẩy/tab/chấm phẩy
       <textarea id="grammarExercisesInput" rows="3" placeholder='[{"type":"choice","question":"Chào thầy: 老师，___ 好！","options":["您","你","吗","谁"],"answer":"您"}]' style="font-family:monospace;font-size:12px"></textarea>
     </div>
 
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('grammarModal')">Hủy</button>
-      <button class="btn btn-jade" onclick="saveGrammar()">Lưu</button>
+    <div class="modal-actions" style="display:flex;justify-content:space-between;align-items:center">
+      <button type="button" class="btn btn-ghost" onclick="previewGrammar()">👁️ Xem trước</button>
+      <div style="display:flex;gap:10px">
+        <button type="button" class="btn btn-ghost" onclick="closeModal('grammarModal')">Hủy</button>
+        <button type="button" class="btn btn-jade" onclick="saveGrammar()">Lưu</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Grammar Preview Modal -->
+<div class="modal-overlay" id="grammarPreviewModal" style="z-index:220">
+  <div class="modal" style="max-width:760px;padding:24px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:12px;border-bottom:var(--border-thin)">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:22px">👁️</span>
+        <h3 style="margin-bottom:0;font-size:18px">Xem trước Điểm Ngữ pháp</h3>
+      </div>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="closeModal('grammarPreviewModal')" style="font-weight:900;font-size:15px;line-height:1;padding:4px 9px" title="Đóng">✕</button>
+    </div>
+
+    <div id="grammarPreviewBody" style="display:flex;flex-direction:column;gap:16px;max-height:65vh;overflow-y:auto;padding-right:6px">
+      <!-- Dynamic Preview Content -->
+    </div>
+
+    <div class="modal-actions" style="margin-top:20px;border-top:var(--border-thin);padding-top:16px;display:flex;justify-content:space-between;align-items:center">
+      <button type="button" class="btn btn-ghost" onclick="closeModal('grammarPreviewModal')">Quay lại chỉnh sửa</button>
+      <button type="button" class="btn btn-jade" onclick="closeModal('grammarPreviewModal');saveGrammar()">💾 Lưu điểm ngữ pháp này</button>
     </div>
   </div>
 </div>
@@ -2265,6 +2316,206 @@ function parseAndApplyAiGrammar(manualText) {
   }
 
   toast('⚡ Đã tự động phân tích và điền toàn bộ dữ liệu từ Bot AI vào form!');
+  return data;
+}
+
+// ===== XEM TRƯỚC (PREVIEW) NGỮ PHÁP =====
+function previewGrammar() {
+  const pasteInput = document.getElementById('grammarAiPasteInput');
+  const titleInput = document.getElementById('grammarTitleInput');
+
+  // Nếu ô paste có dữ liệu mà form đang trống, tự động parse trước
+  if (pasteInput && pasteInput.value.trim() && (!titleInput || !titleInput.value.trim())) {
+    parseAndApplyAiGrammar();
+  }
+
+  const hsk_level = document.getElementById('grammarHskInput').value || '1';
+  const lesson_num = document.getElementById('grammarLessonNumInput').value || '1';
+  const order_index = document.getElementById('grammarOrderIndexInput').value || '1';
+  const lesson_title = document.getElementById('grammarLessonTitleInput').value.trim();
+  const title = document.getElementById('grammarTitleInput').value.trim();
+  const structure = document.getElementById('grammarStructureInput').value.trim();
+  const explanation = document.getElementById('grammarExplanationInput').value.trim();
+  const rawExamples = document.getElementById('grammarExamplesInput').value.trim();
+  const rawExercises = document.getElementById('grammarExercisesInput').value.trim();
+
+  if (!title && !structure && !explanation && !rawExamples) {
+    toast('Chưa có thông tin ngữ pháp để xem trước! Vui lòng nhập hoặc dán dữ liệu.', 'warning');
+    return;
+  }
+
+  // Parse Ví dụ
+  let examples = [];
+  if (rawExamples) {
+    if (rawExamples.startsWith('[') && rawExamples.endsWith(']')) {
+      try { examples = JSON.parse(rawExamples); } catch(e) {}
+    } else {
+      const lines = rawExamples.split('\n');
+      lines.forEach(line => {
+        const trimmed = line.trim();
+        if (!trimmed) return;
+        const parts = trimmed.split('|').map(s => s.trim());
+        examples.push({
+          hanzi: parts[0] || '',
+          pinyin: parts[1] || '',
+          meaning: parts[2] || ''
+        });
+      });
+    }
+  }
+
+  // Parse Bài tập
+  let exercises = [];
+  if (rawExercises) {
+    try { exercises = JSON.parse(rawExercises); } catch(e) {}
+  }
+
+  renderGrammarPreview({
+    hsk_level,
+    lesson_num,
+    order_index,
+    lesson_title,
+    title,
+    structure,
+    explanation,
+    examples,
+    exercises
+  });
+
+  document.getElementById('grammarPreviewModal').classList.add('open');
+}
+
+function renderGrammarPreview(data) {
+  const container = document.getElementById('grammarPreviewBody');
+  if (!container) return;
+
+  const lessonLabel = data.lesson_title ? data.lesson_title : `Bài ${data.lesson_num || 1}`;
+
+  // Render ví dụ
+  let examplesHtml = '';
+  if (Array.isArray(data.examples) && data.examples.length > 0) {
+    examplesHtml = `
+      <div style="margin-top:6px;display:flex;flex-direction:column;gap:8px">
+        ${data.examples.map((ex, idx) => `
+          <div style="background:#faf8f5;border:var(--border-thin);border-left:4px solid var(--orange);padding:10px 14px;border-radius:3px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:12px;font-weight:800;color:var(--orange)">#${idx + 1}</span>
+              <span class="hanzi" style="font-size:18px;font-weight:700;color:var(--ink)">${escapeHtml(ex.hanzi || '')}</span>
+            </div>
+            ${ex.pinyin ? `<div style="font-size:13px;font-style:italic;color:var(--teal);margin-top:2px;font-weight:600">${escapeHtml(ex.pinyin)}</div>` : ''}
+            ${ex.meaning ? `<div style="font-size:13px;color:var(--ink-soft);margin-top:3px;font-weight:500">👉 ${escapeHtml(ex.meaning)}</div>` : ''}
+          </div>
+        `).join('')}
+      </div>
+    `;
+  } else {
+    examplesHtml = '<div style="font-size:13px;color:var(--ink-faint);font-style:italic">Chưa có câu ví dụ</div>';
+  }
+
+  // Render bài tập
+  let exercisesHtml = '';
+  if (Array.isArray(data.exercises) && data.exercises.length > 0) {
+    exercisesHtml = `
+      <div style="margin-top:6px;display:flex;flex-direction:column;gap:10px">
+        ${data.exercises.map((q, idx) => {
+          const typeLabel = q.type === 'choice' ? 'Trắc nghiệm' : (q.type === 'ordering' ? 'Sắp xếp câu' : 'Bài tập');
+          return `
+            <div style="background:#fffaf0;border:var(--border-thin);border-radius:3px;padding:12px 14px">
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+                <span class="badge" style="background:#fef3c7;color:#d97706;border-color:#d97706;font-size:10px">Câu ${idx + 1} • ${typeLabel}</span>
+                <strong style="font-size:13px;color:var(--ink)">${escapeHtml(q.question || q.prompt || '')}</strong>
+              </div>
+              ${Array.isArray(q.options) ? `
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:6px;margin-top:8px">
+                  ${q.options.map(opt => {
+                    const isAns = (q.answer === opt);
+                    return `<div style="padding:6px 10px;font-size:12px;border:var(--border-thin);border-radius:2px;background:${isAns ? '#e6f7ed' : '#fff'};font-weight:${isAns ? '700' : '500'};color:${isAns ? '#047857' : 'var(--ink)'};display:flex;align-items:center;gap:6px">
+                      <span>${isAns ? '✓' : '○'}</span> ${escapeHtml(opt)}
+                    </div>`;
+                  }).join('')}
+                </div>
+              ` : ''}
+              ${q.answer && !Array.isArray(q.options) ? `<div style="margin-top:6px;font-size:12px;color:#047857;font-weight:700">Đáp án: ${escapeHtml(q.answer)}</div>` : ''}
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  // Format giải thích (giữ nguyên dòng hoặc HTML an toàn)
+  let formattedExplanation = escapeHtml(data.explanation || 'Chưa có giải thích');
+  formattedExplanation = formattedExplanation.replace(/\n/g, '<br>');
+
+  container.innerHTML = `
+    <!-- Header meta info -->
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span class="badge badge-hsk">HSK ${escapeHtml(String(data.hsk_level || 1))}</span>
+      <span class="badge" style="background:#f1f5f9;color:#334155;border-color:#94a3b8">${escapeHtml(lessonLabel)}</span>
+      <span class="badge" style="background:#e0f2fe;color:#0284c7;border-color:#0284c7">Thứ tự: ${escapeHtml(String(data.order_index || 1))}</span>
+    </div>
+
+    <!-- Title & Structure Card -->
+    <div style="background:var(--bg-white);border:var(--border);border-radius:4px;padding:16px;box-shadow:var(--shadow-sm)">
+      <h2 style="font-size:18px;font-weight:800;color:var(--ink);margin-bottom:8px">
+        ${escapeHtml(data.title || 'Điểm ngữ pháp mới')}
+      </h2>
+      ${data.structure ? `
+        <div style="background:#fff3e0;border:2px solid var(--orange);border-radius:4px;padding:10px 14px;display:flex;align-items:center;gap:8px">
+          <span style="font-weight:800;color:var(--orange);font-size:12px;text-transform:uppercase;letter-spacing:.5px">Cấu trúc:</span>
+          <span style="font-family:'Noto Serif SC',monospace;font-size:15px;font-weight:700;color:var(--ink)">${escapeHtml(data.structure)}</span>
+        </div>
+      ` : ''}
+    </div>
+
+    <!-- Explanation Card -->
+    <div style="background:var(--bg-white);border:var(--border);border-radius:4px;padding:16px;box-shadow:var(--shadow-sm)">
+      <div style="font-size:12px;font-weight:800;text-transform:uppercase;color:var(--ink-soft);letter-spacing:.5px;margin-bottom:8px">📖 Giải thích & Quy tắc:</div>
+      <div style="font-size:14px;line-height:1.7;color:var(--ink)">${formattedExplanation}</div>
+    </div>
+
+    <!-- Examples Card -->
+    <div style="background:var(--bg-white);border:var(--border);border-radius:4px;padding:16px;box-shadow:var(--shadow-sm)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="font-size:12px;font-weight:800;text-transform:uppercase;color:var(--ink-soft);letter-spacing:.5px">💬 Câu ví dụ minh họa:</div>
+        <span class="badge" style="background:#e0f2fe;color:#0284c7;border-color:#0284c7">${Array.isArray(data.examples) ? data.examples.length : 0} câu</span>
+      </div>
+      ${examplesHtml}
+    </div>
+
+    <!-- Exercises Card (nếu có) -->
+    ${exercisesHtml ? `
+      <div style="background:var(--bg-white);border:var(--border);border-radius:4px;padding:16px;box-shadow:var(--shadow-sm)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div style="font-size:12px;font-weight:800;text-transform:uppercase;color:var(--ink-soft);letter-spacing:.5px">📝 Bài tập ôn luyện:</div>
+          <span class="badge" style="background:#fef3c7;color:#d97706;border-color:#d97706">${Array.isArray(data.exercises) ? data.exercises.length : 0} bài</span>
+        </div>
+        ${exercisesHtml}
+      </div>
+    ` : ''}
+  `;
+}
+
+// Hỗ trợ Xem trước từ Tab Import Ngữ pháp
+function previewGrammarFromImportTab() {
+  const text = document.getElementById('importGrammarAiPasteInput').value.trim();
+  if (!text) {
+    toast('Vui lòng dán dữ liệu do Bot AI trả về vào ô trên trước!', 'error');
+    return;
+  }
+  openGrammarModal();
+  document.getElementById('grammarAiPasteInput').value = text;
+  parseAndApplyAiGrammar(text);
+  previewGrammar();
+}
+
+function openGrammarModalWithAiData() {
+  const text = document.getElementById('importGrammarAiPasteInput').value.trim();
+  openGrammarModal();
+  if (text) {
+    document.getElementById('grammarAiPasteInput').value = text;
+    parseAndApplyAiGrammar(text);
+  }
 }
 
 async function saveGrammar() {
