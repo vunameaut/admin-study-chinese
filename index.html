@@ -173,6 +173,7 @@ tr:hover td{background:#fff5eb}
     <button class="nav-item" data-page="sessions"><span class="nav-icon">📖</span>Sessions</button>
     <button class="nav-item" data-page="vocabulary"><span class="nav-icon">📝</span>Từ vựng</button>
     <button class="nav-item" data-page="grammar"><span class="nav-icon">💡</span>Ngữ pháp</button>
+    <button class="nav-item" data-page="classifiers"><span class="nav-icon">🏷️</span>Lượng từ</button>
     <button class="nav-item" data-page="import"><span class="nav-icon">📥</span>Import</button>
   </nav>
 </aside>
@@ -291,6 +292,47 @@ tr:hover td{background:#fff5eb}
       </table>
     </div>
     <div class="pagination" id="grammarPagination"></div>
+  </div>
+
+  <!-- Classifiers -->
+  <div class="page" id="page-classifiers">
+    <div class="toolbar">
+      <select id="classifierHskFilter">
+        <option value="">Tất cả HSK</option>
+        <option value="1">HSK 1</option>
+        <option value="2">HSK 2</option>
+        <option value="3">HSK 3</option>
+        <option value="4">HSK 4</option>
+        <option value="5">HSK 5</option>
+        <option value="6">HSK 6</option>
+      </select>
+      <select id="classifierLessonFilter">
+        <option value="">Tất cả bài học</option>
+      </select>
+      <input type="text" id="classifierSearch" placeholder="Tìm lượng từ, pinyin, nghĩa, danh từ..." style="min-width:260px">
+      <button class="btn btn-jade" onclick="openClassifierModal()">+ Thêm lượng từ</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Cấp độ & Bài</th>
+            <th>Lượng từ</th>
+            <th>Pinyin</th>
+            <th>Nghĩa</th>
+            <th>Danh từ đi kèm</th>
+            <th>Ví dụ</th>
+            <th>Bài tập</th>
+            <th>Thứ tự</th>
+            <th>Ngày tạo</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="classifierTbody"></tbody>
+      </table>
+    </div>
+    <div class="pagination" id="classifierPagination"></div>
   </div>
 
   <div class="page" id="page-import">
@@ -535,6 +577,109 @@ Mỗi dòng một từ, phân cách bởi dấu phẩy/tab/chấm phẩy
   </div>
 </div>
 
+<!-- Classifier Modal -->
+<div class="modal-overlay" id="classifierModal">
+  <div class="modal" style="max-width:740px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h3 id="classifierModalTitle" style="margin-bottom:0">Thêm Lượng từ</h3>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="closeModal('classifierModal')" style="font-weight:900;font-size:15px;line-height:1;padding:4px 9px" title="Đóng">✕</button>
+    </div>
+
+    <!-- AI Quick-Paste Box -->
+    <div style="background:#fffaf0;border:2px dashed var(--orange);border-radius:4px;padding:12px;margin-bottom:16px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <strong style="font-size:13px;color:var(--orange);display:flex;align-items:center;gap:6px">
+          <span>⚡ Dán nhanh dữ liệu từ Bot AI (Tự động điền khi Paste)</span>
+        </strong>
+        <div style="display:flex;gap:6px">
+          <button type="button" class="btn btn-jade btn-sm" onclick="parseAndApplyAiClassifier()">⚡ Phân tích & Điền Form</button>
+        </div>
+      </div>
+      <textarea id="classifierAiPasteInput" rows="2" 
+        placeholder="Dán JSON hoặc văn bản lượng từ từ AI vào đây... Hệ thống sẽ tự động nhận diện và điền form ngay!" 
+        onpaste="handleAiClassifierPaste(event)"
+        style="font-family:monospace;font-size:12px;margin-bottom:0"></textarea>
+    </div>
+    <input type="hidden" id="classifierEditId">
+    
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+      <div class="form-group">
+        <label>Cấp độ HSK *</label>
+        <select id="classifierHskInput">
+          <option value="1">HSK 1</option>
+          <option value="2">HSK 2</option>
+          <option value="3">HSK 3</option>
+          <option value="4">HSK 4</option>
+          <option value="5">HSK 5</option>
+          <option value="6">HSK 6</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Bài số *</label>
+        <input type="number" id="classifierLessonNumInput" placeholder="1" min="1" value="1">
+      </div>
+      <div class="form-group">
+        <label>Thứ tự trong bài</label>
+        <input type="number" id="classifierOrderIndexInput" placeholder="1" min="1" value="1">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Tên bài học</label>
+      <input type="text" id="classifierLessonTitleInput" placeholder="VD: Bài 3: Cô ấy là người nước nào? (她是哪国人)">
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1.2fr 1.8fr;gap:12px">
+      <div class="form-group">
+        <label>Chữ Hán Lượng từ *</label>
+        <input type="text" id="classifierHanziInput" class="hanzi" placeholder="VD: 张" style="font-family:'Noto Serif SC',serif;font-size:22px;font-weight:700">
+      </div>
+      <div class="form-group">
+        <label>Pinyin *</label>
+        <input type="text" id="classifierPinyinInput" placeholder="VD: zhāng" style="font-style:italic">
+      </div>
+      <div class="form-group">
+        <label>Nghĩa tiếng Việt *</label>
+        <input type="text" id="classifierMeaningInput" placeholder="VD: tờ, tấm, chiếc">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Quy tắc & Mẹo ghi nhớ (Usage Note)</label>
+      <textarea id="classifierUsageNoteInput" rows="2" placeholder="VD: Dùng cho các vật mỏng, phẳng hoặc có bề mặt phẳng rộng (giấy, bàn, giường, vé, ảnh)..."></textarea>
+    </div>
+
+    <div class="form-group">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <label style="margin-bottom:0">Danh từ đi kèm (Mỗi dòng 1 danh từ: Danh từ | Pinyin | Cụm mẫu | Nghĩa)</label>
+        <span style="font-size:11px;color:var(--orange);font-weight:700;cursor:pointer" onclick="insertClassifierCollocationSample()">+ Mẫu danh từ</span>
+      </div>
+      <textarea id="classifierCollocationsInput" rows="4" placeholder="桌子 | zhuōzi | 一张桌子 | một chiếc bàn&#10;纸 | zhǐ | 一张纸 | một tờ giấy&#10;票 | piào | 两张票 | hai tấm vé"></textarea>
+    </div>
+
+    <div class="form-group">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <label style="margin-bottom:0">Câu ví dụ (Mỗi câu 1 dòng: Hán tự | Pinyin | Nghĩa)</label>
+        <span style="font-size:11px;color:var(--orange);font-weight:700;cursor:pointer" onclick="insertClassifierExampleSample()">+ Mẫu ví dụ</span>
+      </div>
+      <textarea id="classifierExamplesInput" rows="3" placeholder="我买了两张电影票。 | Wǒ mǎi le liǎng zhāng diànyǐng piào. | Tôi đã mua hai tấm vé xem phim."></textarea>
+    </div>
+
+    <div class="form-group">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <label style="margin-bottom:0">Bài tập ôn luyện (Định dạng JSON)</label>
+        <span style="font-size:11px;color:var(--orange);font-weight:700;cursor:pointer" onclick="insertClassifierExerciseSample()">+ Mẫu trắc nghiệm</span>
+      </div>
+      <textarea id="classifierExercisesInput" rows="3" placeholder='[{"type":"choice","question":"请给我一___白纸。","options":["张","条","只","双"],"answer":"张","explain":"Giấy (纸) là vật phẳng mỏng dùng lượng từ 张"}]' style="font-family:monospace;font-size:12px"></textarea>
+    </div>
+
+    <div class="modal-actions" style="display:flex;justify-content:flex-end;gap:10px">
+      <button type="button" class="btn btn-ghost" onclick="closeModal('classifierModal')">Hủy</button>
+      <button type="button" class="btn btn-jade" onclick="saveClassifier()">Lưu Lượng từ</button>
+    </div>
+  </div>
+</div>
+
 <!-- Grammar Preview Modal -->
 <div class="modal-overlay" id="grammarPreviewModal" style="z-index:220">
   <div class="modal" style="max-width:760px;padding:24px">
@@ -723,7 +868,7 @@ let currentPage = 'dashboard';
 let allSessions = [];
 let allVocab = [];
 
-const pageTitles = { dashboard:'Dashboard', sessions:'Sessions', vocabulary:'Từ vựng', grammar:'Ngữ pháp', import:'Import' };
+const pageTitles = { dashboard:'Dashboard', sessions:'Sessions', vocabulary:'Từ vựng', grammar:'Ngữ pháp', classifiers:'Lượng từ', import:'Import' };
 
 function navigateTo(page) {
   currentPage = page;
@@ -736,6 +881,7 @@ function navigateTo(page) {
   else if (page === 'sessions') loadSessions();
   else if (page === 'vocabulary') loadVocabulary();
   else if (page === 'grammar') loadGrammar();
+  else if (page === 'classifiers') loadClassifiers();
   else if (page === 'import') loadImportPage();
 }
 
@@ -2666,6 +2812,444 @@ function insertAdminExerciseSample() {
   ];
   el.value = JSON.stringify(sample, null, 2);
   el.focus();
+}
+
+
+// ===== CLASSIFIERS (LƯỢNG TỪ) =====
+let allClassifiers = [];
+let classifierPage = 1;
+const CLASSIFIERS_PER_PAGE = 20;
+
+async function loadClassifiers() {
+  try {
+    allClassifiers = await sbFetch('classifiers', {
+      select: 'id,hsk_level,lesson_num,lesson_title,hanzi,pinyin,meaning,usage_note,collocations,examples,exercises,order_index,created_at',
+      order: 'hsk_level.asc,lesson_num.asc,order_index.asc,id.asc'
+    });
+    restoreClassifierFilters();
+    renderClassifiersTable();
+  } catch (e) {
+    toast('Lỗi tải danh sách lượng từ: ' + e.message, 'error');
+  }
+}
+
+function restoreClassifierFilters() {
+  const savedHsk = localStorage.getItem('admin_classifier_hsk');
+  const hskEl = document.getElementById('classifierHskFilter');
+  if (savedHsk && hskEl) {
+    hskEl.value = savedHsk;
+  }
+  populateClassifierLessonFilter();
+}
+
+function populateClassifierLessonFilter() {
+  const hsk = document.getElementById('classifierHskFilter').value;
+  const lessonEl = document.getElementById('classifierLessonFilter');
+  if (!lessonEl) return;
+
+  const lessonsMap = new Map();
+  allClassifiers.forEach(c => {
+    if (hsk && c.hsk_level != hsk) return;
+    const key = `${c.hsk_level}-${c.lesson_num}`;
+    if (!lessonsMap.has(key)) {
+      lessonsMap.set(key, {
+        hsk: c.hsk_level,
+        lesson: c.lesson_num,
+        title: c.lesson_title || `Bài ${c.lesson_num}`
+      });
+    }
+  });
+
+  const sortedLessons = Array.from(lessonsMap.values()).sort((a, b) => {
+    if (a.hsk !== b.hsk) return a.hsk - b.hsk;
+    return a.lesson - b.lesson;
+  });
+
+  const savedLesson = localStorage.getItem('admin_classifier_lesson') || '';
+  lessonEl.innerHTML = '<option value="">Tất cả bài học</option>' +
+    sortedLessons.map(l => {
+      const hskPrefix = hsk ? '' : `[HSK ${l.hsk}] `;
+      const key = `${l.hsk}-${l.lesson}`;
+      const isSel = key === savedLesson ? ' selected' : '';
+      return `<option value="${key}"${isSel}>${hskPrefix}${escapeHtml(l.title)}</option>`;
+    }).join('');
+}
+
+function getFilteredClassifiers() {
+  const hsk = document.getElementById('classifierHskFilter').value;
+  const lessonKey = document.getElementById('classifierLessonFilter').value;
+  const q = (document.getElementById('classifierSearch').value || '').trim().toLowerCase();
+
+  return allClassifiers.filter(c => {
+    if (hsk && c.hsk_level != hsk) return false;
+    if (lessonKey) {
+      const [lHsk, lNum] = lessonKey.split('-');
+      if (c.hsk_level != lHsk || c.lesson_num != lNum) return false;
+    }
+    if (q) {
+      const matchHanzi = (c.hanzi || '').toLowerCase().includes(q);
+      const matchPinyin = (c.pinyin || '').toLowerCase().includes(q);
+      const matchMeaning = (c.meaning || '').toLowerCase().includes(q);
+      const matchNote = (c.usage_note || '').toLowerCase().includes(q);
+      const matchLesson = (c.lesson_title || '').toLowerCase().includes(q);
+      let matchColloc = false;
+      if (Array.isArray(c.collocations)) {
+        matchColloc = c.collocations.some(item => 
+          (item.noun || '').toLowerCase().includes(q) ||
+          (item.phrase || '').toLowerCase().includes(q) ||
+          (item.meaning || '').toLowerCase().includes(q)
+        );
+      }
+      if (!matchHanzi && !matchPinyin && !matchMeaning && !matchNote && !matchLesson && !matchColloc) return false;
+    }
+    return true;
+  });
+}
+
+function renderClassifiersTable() {
+  const filtered = getFilteredClassifiers();
+  const total = Math.ceil(filtered.length / CLASSIFIERS_PER_PAGE);
+  if (classifierPage > total) classifierPage = total || 1;
+  const start = (classifierPage - 1) * CLASSIFIERS_PER_PAGE;
+  const pageItems = filtered.slice(start, start + CLASSIFIERS_PER_PAGE);
+
+  const tbody = document.getElementById('classifierTbody');
+  if (!tbody) return;
+
+  if (pageItems.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:24px;color:var(--ink-faint)">Không tìm thấy lượng từ nào phù hợp. Bấm "+ Thêm lượng từ" để tạo mới.</td></tr>';
+    renderPagination('classifierPagination', 0, 1, () => {});
+    return;
+  }
+
+  tbody.innerHTML = pageItems.map(c => {
+    const collocCount = Array.isArray(c.collocations) ? c.collocations.length : 0;
+    const exCount = Array.isArray(c.examples) ? c.examples.length : 0;
+    const qCount = Array.isArray(c.exercises) ? c.exercises.length : 0;
+    const lessonLabel = c.lesson_title ? c.lesson_title : `Bài ${c.lesson_num || 1}`;
+
+    return `<tr style="cursor:pointer" onclick="openClassifierModal(${c.id})">
+      <td>${c.id}</td>
+      <td>
+        <span class="badge badge-hsk">HSK ${c.hsk_level || 1}</span>
+        <div style="font-size:12px;font-weight:600;color:var(--ink-soft);margin-top:2px">${escapeHtml(lessonLabel)}</div>
+      </td>
+      <td><span class="hanzi" style="font-size:24px;font-weight:700;color:var(--seal-son)">${escapeHtml(c.hanzi || '')}</span></td>
+      <td style="font-style:italic;font-size:13px;color:var(--ink-soft)">${escapeHtml(c.pinyin || '')}</td>
+      <td><strong>${escapeHtml(c.meaning || '')}</strong></td>
+      <td><span class="badge" style="background:#f0fdf4;color:#16a34a;border-color:#16a34a">${collocCount} danh từ</span></td>
+      <td><span class="badge" style="background:#e0f2fe;color:#0284c7;border-color:#0284c7">${exCount} câu</span></td>
+      <td><span class="badge" style="background:#fef3c7;color:#d97706;border-color:#d97706">${qCount} bài</span></td>
+      <td>${c.order_index || 1}</td>
+      <td>${formatDate(c.created_at)}</td>
+      <td>
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openClassifierModal(${c.id})">Sửa</button>
+        <button class="btn btn-seal btn-sm" onclick="event.stopPropagation();deleteClassifier(${c.id})">Xóa</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  renderPagination('classifierPagination', total, classifierPage, p => {
+    classifierPage = p;
+    renderClassifiersTable();
+  });
+}
+
+function openClassifierModal(id) {
+  document.getElementById('classifierAiPasteInput').value = '';
+  if (id) {
+    const c = allClassifiers.find(x => x.id === id);
+    if (!c) return;
+    document.getElementById('classifierModalTitle').textContent = 'Chỉnh sửa Lượng từ';
+    document.getElementById('classifierEditId').value = c.id;
+    document.getElementById('classifierHskInput').value = c.hsk_level || 1;
+    document.getElementById('classifierLessonNumInput').value = c.lesson_num || 1;
+    document.getElementById('classifierOrderIndexInput').value = c.order_index || 1;
+    document.getElementById('classifierLessonTitleInput').value = c.lesson_title || '';
+    document.getElementById('classifierHanziInput').value = c.hanzi || '';
+    document.getElementById('classifierPinyinInput').value = c.pinyin || '';
+    document.getElementById('classifierMeaningInput').value = c.meaning || '';
+    document.getElementById('classifierUsageNoteInput').value = c.usage_note || '';
+
+    let collocText = '';
+    if (Array.isArray(c.collocations)) {
+      collocText = c.collocations.map(col => `${col.noun || ''} | ${col.pinyin || ''} | ${col.phrase || ''} | ${col.meaning || ''}`).join('\n');
+    }
+    document.getElementById('classifierCollocationsInput').value = collocText;
+
+    let exText = '';
+    if (Array.isArray(c.examples)) {
+      exText = c.examples.map(ex => `${ex.hanzi || ''} | ${ex.pinyin || ''} | ${ex.meaning || ''}`).join('\n');
+    }
+    document.getElementById('classifierExamplesInput').value = exText;
+
+    document.getElementById('classifierExercisesInput').value = c.exercises ? JSON.stringify(c.exercises, null, 2) : '';
+  } else {
+    document.getElementById('classifierModalTitle').textContent = 'Thêm Lượng từ';
+    document.getElementById('classifierEditId').value = '';
+    const currentHsk = document.getElementById('classifierHskFilter').value || '1';
+    document.getElementById('classifierHskInput').value = currentHsk;
+
+    const lessonKey = document.getElementById('classifierLessonFilter').value;
+    let lNum = 1;
+    if (lessonKey) {
+      const parts = lessonKey.split('-');
+      if (parts.length === 2) lNum = parseInt(parts[1]) || 1;
+    }
+    document.getElementById('classifierLessonNumInput').value = lNum;
+
+    const maxOrder = allClassifiers
+      .filter(x => x.hsk_level == currentHsk && x.lesson_num == lNum)
+      .reduce((max, x) => Math.max(max, x.order_index || 0), 0);
+    document.getElementById('classifierOrderIndexInput').value = maxOrder + 1;
+
+    const existingInLesson = allClassifiers.find(x => x.hsk_level == currentHsk && x.lesson_num == lNum);
+    document.getElementById('classifierLessonTitleInput').value = existingInLesson ? (existingInLesson.lesson_title || '') : `Bài ${lNum}`;
+
+    document.getElementById('classifierHanziInput').value = '';
+    document.getElementById('classifierPinyinInput').value = '';
+    document.getElementById('classifierMeaningInput').value = '';
+    document.getElementById('classifierUsageNoteInput').value = '';
+    document.getElementById('classifierCollocationsInput').value = '';
+    document.getElementById('classifierExamplesInput').value = '';
+    document.getElementById('classifierExercisesInput').value = '';
+  }
+  openModal('classifierModal');
+}
+
+async function saveClassifier() {
+  try {
+    const id = document.getElementById('classifierEditId').value;
+    const hsk_level = parseInt(document.getElementById('classifierHskInput').value) || 1;
+    const lesson_num = parseInt(document.getElementById('classifierLessonNumInput').value) || 1;
+    const order_index = parseInt(document.getElementById('classifierOrderIndexInput').value) || 1;
+    const lesson_title = document.getElementById('classifierLessonTitleInput').value.trim();
+    const hanzi = document.getElementById('classifierHanziInput').value.trim();
+    const pinyin = document.getElementById('classifierPinyinInput').value.trim();
+    const meaning = document.getElementById('classifierMeaningInput').value.trim();
+    const usage_note = document.getElementById('classifierUsageNoteInput').value.trim();
+
+    if (!hanzi || !meaning) {
+      toast('Vui lòng nhập Chữ Hán và Nghĩa lượng từ!', 'error');
+      return;
+    }
+
+    const rawColloc = document.getElementById('classifierCollocationsInput').value.trim();
+    let collocations = [];
+    if (rawColloc) {
+      if (rawColloc.startsWith('[') && rawColloc.endsWith(']')) {
+        try {
+          collocations = JSON.parse(rawColloc);
+        } catch(e) {
+          toast('Định dạng JSON danh từ không hợp lệ: ' + e.message, 'error');
+          return;
+        }
+      } else {
+        const lines = rawColloc.split('\n');
+        lines.forEach(line => {
+          const trimmed = line.trim();
+          if (!trimmed) return;
+          const parts = trimmed.split('|').map(s => s.trim());
+          if (parts.length >= 4) {
+            collocations.push({
+              noun: parts[0] || '',
+              pinyin: parts[1] || '',
+              phrase: parts[2] || '',
+              meaning: parts[3] || ''
+            });
+          } else if (parts.length >= 2) {
+            collocations.push({
+              noun: parts[0] || '',
+              pinyin: parts[1] || '',
+              phrase: `一${hanzi}${parts[0]}`,
+              meaning: parts[2] || ''
+            });
+          } else if (parts.length === 1) {
+            collocations.push({
+              noun: parts[0],
+              pinyin: '',
+              phrase: `一${hanzi}${parts[0]}`,
+              meaning: ''
+            });
+          }
+        });
+      }
+    }
+
+    const rawExamples = document.getElementById('classifierExamplesInput').value.trim();
+    let examples = [];
+    if (rawExamples) {
+      if (rawExamples.startsWith('[') && rawExamples.endsWith(']')) {
+        try {
+          examples = JSON.parse(rawExamples);
+        } catch(e) {
+          toast('Định dạng JSON ví dụ không hợp lệ: ' + e.message, 'error');
+          return;
+        }
+      } else {
+        const lines = rawExamples.split('\n');
+        lines.forEach(line => {
+          const trimmed = line.trim();
+          if (!trimmed) return;
+          const parts = trimmed.split('|').map(s => s.trim());
+          if (parts.length >= 2) {
+            examples.push({
+              hanzi: parts[0] || '',
+              pinyin: parts[1] || '',
+              meaning: parts[2] || ''
+            });
+          } else {
+            examples.push({
+              hanzi: parts[0],
+              pinyin: '',
+              meaning: ''
+            });
+          }
+        });
+      }
+    }
+
+    const rawExercises = document.getElementById('classifierExercisesInput').value.trim();
+    let exercises = [];
+    if (rawExercises) {
+      try {
+        exercises = JSON.parse(rawExercises);
+        if (!Array.isArray(exercises)) {
+          toast('Bài tập phải là mảng JSON [ ... ]!', 'error');
+          return;
+        }
+      } catch(e) {
+        toast('Lỗi cú pháp JSON bài tập: ' + e.message, 'error');
+        return;
+      }
+    }
+
+    const payload = {
+      hsk_level,
+      lesson_num,
+      order_index,
+      lesson_title: lesson_title || `Bài ${lesson_num}`,
+      hanzi,
+      pinyin: pinyin || null,
+      meaning,
+      usage_note: usage_note || null,
+      collocations,
+      examples,
+      exercises
+    };
+
+    if (id) {
+      await sbUpdate('classifiers', payload, `id=eq.${id}`);
+      toast('Đã cập nhật lượng từ thành công!');
+    } else {
+      await sbInsert('classifiers', payload);
+      toast('Đã thêm lượng từ mới thành công!');
+    }
+
+    closeModal('classifierModal');
+    await loadClassifiers();
+  } catch (e) {
+    toast('Lỗi lưu lượng từ: ' + e.message, 'error');
+  }
+}
+
+async function deleteClassifier(id) {
+  const c = allClassifiers.find(x => x.id === id);
+  const name = c ? `"${c.hanzi}" (${c.meaning})` : 'lượng từ này';
+  if (!confirm(`Bạn có chắc chắn muốn xóa ${name} không?`)) return;
+
+  try {
+    await sbDelete('classifiers', `id=eq.${id}`);
+    toast('Đã xóa lượng từ thành công!');
+    await loadClassifiers();
+  } catch (e) {
+    toast('Lỗi xóa lượng từ: ' + e.message, 'error');
+  }
+}
+
+function insertClassifierCollocationSample() {
+  const current = document.getElementById('classifierCollocationsInput').value;
+  const sample = `桌子 | zhuōzi | 一张桌子 | một chiếc bàn\n纸 | zhǐ | 一张纸 | một tờ giấy\n票 | piào | 两张票 | hai tấm vé`;
+  document.getElementById('classifierCollocationsInput').value = current ? current + '\n' + sample : sample;
+}
+
+function insertClassifierExampleSample() {
+  const current = document.getElementById('classifierExamplesInput').value;
+  const sample = `我买了两张电影票。 | Wǒ mǎi le liǎng zhāng diànyǐng piào. | Tôi đã mua hai tấm vé xem phim.`;
+  document.getElementById('classifierExamplesInput').value = current ? current + '\n' + sample : sample;
+}
+
+function insertClassifierExerciseSample() {
+  const sample = JSON.stringify([
+    {
+      type: "choice",
+      question: "请给我一___白纸。",
+      options: ["张", "条", "只", "双"],
+      answer: "张",
+      explain: "Giấy (纸) là vật phẳng mỏng nên dùng lượng từ '张'."
+    }
+  ], null, 2);
+  document.getElementById('classifierExercisesInput').value = sample;
+}
+
+function handleAiClassifierPaste(e) {
+  const clip = e.clipboardData || window.clipboardData;
+  if (!clip) return;
+  const text = clip.getData('text');
+  if (!text) return;
+  setTimeout(() => parseAndApplyAiClassifier(text), 60);
+}
+
+function parseAndApplyAiClassifier(rawText) {
+  const text = rawText || document.getElementById('classifierAiPasteInput').value.trim();
+  if (!text) {
+    toast('Vui lòng dán dữ liệu AI vào ô trước!', 'error');
+    return;
+  }
+
+  try {
+    let jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const data = JSON.parse(jsonMatch[0]);
+      if (data.hsk_level) document.getElementById('classifierHskInput').value = data.hsk_level;
+      if (data.lesson_num) document.getElementById('classifierLessonNumInput').value = data.lesson_num;
+      if (data.lesson_title) document.getElementById('classifierLessonTitleInput').value = data.lesson_title;
+      if (data.hanzi) document.getElementById('classifierHanziInput').value = data.hanzi;
+      if (data.pinyin) document.getElementById('classifierPinyinInput').value = data.pinyin;
+      if (data.meaning) document.getElementById('classifierMeaningInput').value = data.meaning;
+      if (data.usage_note) document.getElementById('classifierUsageNoteInput').value = data.usage_note;
+
+      if (data.collocations && Array.isArray(data.collocations)) {
+        document.getElementById('classifierCollocationsInput').value = data.collocations
+          .map(col => `${col.noun || ''} | ${col.pinyin || ''} | ${col.phrase || ''} | ${col.meaning || ''}`).join('\n');
+      }
+      if (data.examples && Array.isArray(data.examples)) {
+        document.getElementById('classifierExamplesInput').value = data.examples
+          .map(ex => `${ex.hanzi || ''} | ${ex.pinyin || ''} | ${ex.meaning || ''}`).join('\n');
+      }
+      if (data.exercises && Array.isArray(data.exercises)) {
+        document.getElementById('classifierExercisesInput').value = JSON.stringify(data.exercises, null, 2);
+      }
+      toast('Đã phân tích và điền form lượng từ thành công!');
+      return;
+    }
+  } catch(e) {
+    console.warn('Không thể parse JSON lượng từ, chuyển qua parse dạng text:', e);
+  }
+
+  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+  lines.forEach(l => {
+    if (/^(lượng từ|hanzi|chữ hán)[:：]/i.test(l)) {
+      document.getElementById('classifierHanziInput').value = l.split(/[:：]/)[1].trim();
+    } else if (/^(pinyin|phiên âm)[:：]/i.test(l)) {
+      document.getElementById('classifierPinyinInput').value = l.split(/[:：]/)[1].trim();
+    } else if (/^(nghĩa|meaning)[:：]/i.test(l)) {
+      document.getElementById('classifierMeaningInput').value = l.split(/[:：]/)[1].trim();
+    } else if (/^(mẹo|quy tắc|cách dùng|usage)[:：]/i.test(l)) {
+      document.getElementById('classifierUsageNoteInput').value = l.split(/[:：]/)[1].trim();
+    }
+  });
+  toast('Đã phân tích văn bản và điền form!');
 }
 
 // Bắt sự kiện lọc và ngăn modal bị đóng khi ấn ra ngoài
