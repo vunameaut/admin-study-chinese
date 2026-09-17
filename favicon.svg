@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Neo-brutalist offset shadow -->
+  <rect x="6" y="6" width="54" height="54" rx="12" fill="#1a1a1a"/>
+  <!-- Front card with orange ink tone -->
+  <rect x="2" y="2" width="54" height="54" rx="12" fill="#ff6b35" stroke="#1a1a1a" stroke-width="3"/>
+  <!-- Ink Character 墨 -->
+  <text x="29" y="38" text-anchor="middle" font-family="'Noto Serif SC', 'Source Han Serif SC', 'PingFang SC', serif" font-size="33" font-weight="900" fill="#ffffff">墨</text>
+</svg>

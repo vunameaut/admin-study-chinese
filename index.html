@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Mực & Giấy Admin — Bold</title>
+<title>墨纸 — Mực & Giấy Admin</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="alternate icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='6' y='6' width='54' height='54' rx='12' fill='%231a1a1a'/%3E%3Crect x='2' y='2' width='54' height='54' rx='12' fill='%23ff6b35' stroke='%231a1a1a' stroke-width='3'/%3E%3Ctext x='29' y='38' text-anchor='middle' font-family='sans-serif' font-size='33' font-weight='900' fill='%23ffffff'%3E%E5%A2%A8%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Serif+SC:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
@@ -342,6 +344,7 @@ tr:hover td{background:#fff5eb}
         <button class="tab" data-tab="tabPaste">📋 Paste văn bản</button>
         <button class="tab" data-tab="tabForm">✏️ Nhập tay</button>
         <button class="tab" data-tab="tabGrammar">💡 Import Ngữ pháp</button>
+        <button class="tab" data-tab="tabClassifier">🏷️ Import Lượng từ</button>
       </div>
 
       <div class="tab-content active" id="tabFile">
@@ -444,6 +447,28 @@ Mỗi dòng một từ, phân cách bởi dấu phẩy/tab/chấm phẩy
           <div style="margin-top:10px;display:flex;justify-content:flex-end;gap:8px">
             <button type="button" class="btn btn-ghost" onclick="previewGrammarFromImportTab()">👁️ Xem trước ngữ pháp</button>
             <button type="button" class="btn btn-jade" onclick="openGrammarModalWithAiData()">⚡ Mở Form chỉnh sửa & Lưu</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab Import Lượng Từ -->
+      <div class="tab-content" id="tabClassifier">
+        <div style="background:#fffaf0;border:2px dashed var(--orange);border-radius:4px;padding:16px;margin-bottom:16px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+            <strong style="font-size:14px;color:var(--orange);display:flex;align-items:center;gap:6px">
+              <span>⚡ Dán dữ liệu Lượng từ từ Bot AI (JSON hoặc Văn bản có nhãn)</span>
+            </strong>
+            <div style="display:flex;gap:8px">
+              <button type="button" class="btn btn-ghost btn-sm" onclick="previewClassifierFromImportTab()" style="background:#fff">👁️ Xem trước</button>
+              <button type="button" class="btn btn-jade btn-sm" onclick="openClassifierModalWithAiData()">⚡ Điền Form & Chi tiết</button>
+            </div>
+          </div>
+          <textarea id="importClassifierAiPasteInput" rows="6" 
+            placeholder="Dán toàn bộ kết quả bot AI trả về vào đây (JSON hoặc văn bản)...&#10;Bấm '👁️ Xem trước' để duyệt ngay giao diện, hoặc '⚡ Điền Form & Chi tiết' để chỉnh sửa và lưu!"
+            style="font-family:monospace;font-size:13px;width:100%"></textarea>
+          <div style="margin-top:10px;display:flex;justify-content:flex-end;gap:8px">
+            <button type="button" class="btn btn-ghost" onclick="previewClassifierFromImportTab()">👁️ Xem trước lượng từ</button>
+            <button type="button" class="btn btn-jade" onclick="openClassifierModalWithAiData()">⚡ Mở Form chỉnh sửa & Lưu</button>
           </div>
         </div>
       </div>
@@ -592,6 +617,7 @@ Mỗi dòng một từ, phân cách bởi dấu phẩy/tab/chấm phẩy
           <span>⚡ Dán nhanh dữ liệu từ Bot AI (Tự động điền khi Paste)</span>
         </strong>
         <div style="display:flex;gap:6px">
+          <button type="button" class="btn btn-ghost btn-sm" onclick="previewClassifier()" style="background:#fff" title="Xem trước giao diện">👁️ Xem trước</button>
           <button type="button" class="btn btn-jade btn-sm" onclick="parseAndApplyAiClassifier()">⚡ Phân tích & Điền Form</button>
         </div>
       </div>
@@ -673,9 +699,34 @@ Mỗi dòng một từ, phân cách bởi dấu phẩy/tab/chấm phẩy
       <textarea id="classifierExercisesInput" rows="3" placeholder='[{"type":"choice","question":"请给我一___白纸。","options":["张","条","只","双"],"answer":"张","explain":"Giấy (纸) là vật phẳng mỏng dùng lượng từ 张"}]' style="font-family:monospace;font-size:12px"></textarea>
     </div>
 
-    <div class="modal-actions" style="display:flex;justify-content:flex-end;gap:10px">
-      <button type="button" class="btn btn-ghost" onclick="closeModal('classifierModal')">Hủy</button>
-      <button type="button" class="btn btn-jade" onclick="saveClassifier()">Lưu Lượng từ</button>
+    <div class="modal-actions" style="display:flex;justify-content:space-between;align-items:center">
+      <button type="button" class="btn btn-ghost" onclick="previewClassifier()">👁️ Xem trước</button>
+      <div style="display:flex;gap:10px">
+        <button type="button" class="btn btn-ghost" onclick="closeModal('classifierModal')">Hủy</button>
+        <button type="button" class="btn btn-jade" onclick="saveClassifier()">Lưu Lượng từ</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Classifier Preview Modal -->
+<div class="modal-overlay" id="classifierPreviewModal" style="z-index:220">
+  <div class="modal" style="max-width:760px;padding:24px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:12px;border-bottom:var(--border-thin)">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:22px">👁️</span>
+        <h3 style="margin-bottom:0;font-size:18px">Xem trước Lượng từ</h3>
+      </div>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="closeModal('classifierPreviewModal')" style="font-weight:900;font-size:15px;line-height:1;padding:4px 9px" title="Đóng">✕</button>
+    </div>
+
+    <div id="classifierPreviewBody" style="display:flex;flex-direction:column;gap:16px;max-height:65vh;overflow-y:auto;padding-right:6px">
+      <!-- Dynamic Preview Content -->
+    </div>
+
+    <div class="modal-actions" style="margin-top:20px;border-top:var(--border-thin);padding-top:16px;display:flex;justify-content:space-between;align-items:center">
+      <button type="button" class="btn btn-ghost" onclick="closeModal('classifierPreviewModal')">Quay lại chỉnh sửa</button>
+      <button type="button" class="btn btn-jade" onclick="closeModal('classifierPreviewModal');saveClassifier()">💾 Lưu lượng từ này</button>
     </div>
   </div>
 </div>
@@ -823,6 +874,11 @@ function toast(msg, type='success') {
   document.getElementById('toastContainer').appendChild(el);
   const dur = type === 'error' ? 8000 : 3000;
   setTimeout(() => el.remove(), dur);
+}
+
+function openModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.add('open');
 }
 
 function closeModal(id) {
@@ -2823,7 +2879,7 @@ const CLASSIFIERS_PER_PAGE = 20;
 async function loadClassifiers() {
   try {
     allClassifiers = await sbFetch('classifiers', {
-      select: 'id,hsk_level,lesson_num,lesson_title,hanzi,pinyin,meaning,usage_note,collocations,examples,exercises,order_index,created_at',
+      select: 'id,session_id,hsk_level,lesson_num,lesson_title,hanzi,pinyin,meaning,usage_note,collocations,examples,exercises,order_index,created_at',
       order: 'hsk_level.asc,lesson_num.asc,order_index.asc,id.asc'
     });
     restoreClassifierFilters();
@@ -2870,9 +2926,15 @@ function populateClassifierLessonFilter() {
     sortedLessons.map(l => {
       const hskPrefix = hsk ? '' : `[HSK ${l.hsk}] `;
       const key = `${l.hsk}-${l.lesson}`;
-      const isSel = key === savedLesson ? ' selected' : '';
-      return `<option value="${key}"${isSel}>${hskPrefix}${escapeHtml(l.title)}</option>`;
+      return `<option value="${key}">${hskPrefix}${escapeHtml(l.title)}</option>`;
     }).join('');
+
+  if (savedLesson && lessonsMap.has(savedLesson)) {
+    lessonEl.value = savedLesson;
+  } else {
+    lessonEl.value = '';
+    localStorage.setItem('admin_classifier_lesson', '');
+  }
 }
 
 function getFilteredClassifiers() {
@@ -2934,7 +2996,7 @@ function renderClassifiersTable() {
         <span class="badge badge-hsk">HSK ${c.hsk_level || 1}</span>
         <div style="font-size:12px;font-weight:600;color:var(--ink-soft);margin-top:2px">${escapeHtml(lessonLabel)}</div>
       </td>
-      <td><span class="hanzi" style="font-size:24px;font-weight:700;color:var(--seal-son)">${escapeHtml(c.hanzi || '')}</span></td>
+      <td><span class="hanzi" style="font-size:24px;font-weight:700;color:var(--orange)">${escapeHtml(c.hanzi || '')}</span></td>
       <td style="font-style:italic;font-size:13px;color:var(--ink-soft)">${escapeHtml(c.pinyin || '')}</td>
       <td><strong>${escapeHtml(c.meaning || '')}</strong></td>
       <td><span class="badge" style="background:#f0fdf4;color:#16a34a;border-color:#16a34a">${collocCount} danh từ</span></td>
@@ -2956,7 +3018,9 @@ function renderClassifiersTable() {
 }
 
 function openClassifierModal(id) {
-  document.getElementById('classifierAiPasteInput').value = '';
+  const aiInput = document.getElementById('classifierAiPasteInput');
+  if (aiInput) aiInput.value = '';
+
   if (id) {
     const c = allClassifiers.find(x => x.id === id);
     if (!c) return;
@@ -2983,18 +3047,19 @@ function openClassifierModal(id) {
     }
     document.getElementById('classifierExamplesInput').value = exText;
 
-    document.getElementById('classifierExercisesInput').value = c.exercises ? JSON.stringify(c.exercises, null, 2) : '';
+    document.getElementById('classifierExercisesInput').value = (Array.isArray(c.exercises) && c.exercises.length > 0) ? JSON.stringify(c.exercises, null, 2) : '';
   } else {
-    document.getElementById('classifierModalTitle').textContent = 'Thêm Lượng từ';
+    document.getElementById('classifierModalTitle').textContent = 'Thêm Lượng từ mới';
     document.getElementById('classifierEditId').value = '';
-    const currentHsk = document.getElementById('classifierHskFilter').value || '1';
+
+    const currentHsk = document.getElementById('classifierHskFilter').value || localStorage.getItem('admin_classifier_hsk') || '1';
     document.getElementById('classifierHskInput').value = currentHsk;
 
-    const lessonKey = document.getElementById('classifierLessonFilter').value;
+    const lessonKey = document.getElementById('classifierLessonFilter').value || localStorage.getItem('admin_classifier_lesson') || '';
     let lNum = 1;
     if (lessonKey) {
       const parts = lessonKey.split('-');
-      if (parts.length === 2) lNum = parseInt(parts[1]) || 1;
+      if (parts.length >= 2) lNum = parseInt(parts[1]) || 1;
     }
     document.getElementById('classifierLessonNumInput').value = lNum;
 
@@ -3015,6 +3080,269 @@ function openClassifierModal(id) {
     document.getElementById('classifierExercisesInput').value = '';
   }
   openModal('classifierModal');
+}
+
+// ===== PREVIEW LƯỢNG TỪ =====
+function previewClassifier() {
+  const pasteInput = document.getElementById('classifierAiPasteInput');
+  const hanziInput = document.getElementById('classifierHanziInput');
+
+  // Nếu ô paste có dữ liệu mà form đang trống, tự động parse trước
+  if (pasteInput && pasteInput.value.trim() && (!hanziInput || !hanziInput.value.trim())) {
+    parseAndApplyAiClassifier();
+  }
+
+  const hsk_level = document.getElementById('classifierHskInput').value || '1';
+  const lesson_num = document.getElementById('classifierLessonNumInput').value || '1';
+  const order_index = document.getElementById('classifierOrderIndexInput').value || '1';
+  const lesson_title = document.getElementById('classifierLessonTitleInput').value.trim();
+  const hanzi = document.getElementById('classifierHanziInput').value.trim();
+  const pinyin = document.getElementById('classifierPinyinInput').value.trim();
+  const meaning = document.getElementById('classifierMeaningInput').value.trim();
+  const usage_note = document.getElementById('classifierUsageNoteInput').value.trim();
+  const rawColloc = document.getElementById('classifierCollocationsInput').value.trim();
+  const rawExamples = document.getElementById('classifierExamplesInput').value.trim();
+  const rawExercises = document.getElementById('classifierExercisesInput').value.trim();
+
+  if (!hanzi && !meaning && !rawColloc && !rawExamples) {
+    toast('Chưa có thông tin lượng từ để xem trước! Vui lòng nhập hoặc dán dữ liệu.', 'warning');
+    return;
+  }
+
+  // Parse Collocations
+  let collocations = [];
+  if (rawColloc) {
+    if (rawColloc.startsWith('[') && rawColloc.endsWith(']')) {
+      try { collocations = JSON.parse(rawColloc); } catch(e) {}
+    } else {
+      const lines = rawColloc.split('\n');
+      lines.forEach(line => {
+        const trimmed = line.trim();
+        if (!trimmed) return;
+        const parts = trimmed.split('|').map(s => s.trim());
+        if (parts.length >= 4) {
+          collocations.push({
+            noun: parts[0] || '',
+            pinyin: parts[1] || '',
+            phrase: parts[2] || '',
+            meaning: parts[3] || ''
+          });
+        } else if (parts.length >= 2) {
+          collocations.push({
+            noun: parts[0] || '',
+            pinyin: parts[1] || '',
+            phrase: `一${hanzi}${parts[0]}`,
+            meaning: parts[2] || ''
+          });
+        } else if (parts.length === 1) {
+          collocations.push({
+            noun: parts[0],
+            pinyin: '',
+            phrase: `一${hanzi}${parts[0]}`,
+            meaning: ''
+          });
+        }
+      });
+    }
+  }
+
+  // Parse Examples
+  let examples = [];
+  if (rawExamples) {
+    if (rawExamples.startsWith('[') && rawExamples.endsWith(']')) {
+      try { examples = JSON.parse(rawExamples); } catch(e) {}
+    } else {
+      const lines = rawExamples.split('\n');
+      lines.forEach(line => {
+        const trimmed = line.trim();
+        if (!trimmed) return;
+        const parts = trimmed.split('|').map(s => s.trim());
+        examples.push({
+          hanzi: parts[0] || '',
+          pinyin: parts[1] || '',
+          meaning: parts[2] || ''
+        });
+      });
+    }
+  }
+
+  // Parse Exercises
+  let exercises = [];
+  if (rawExercises) {
+    try { exercises = JSON.parse(rawExercises); } catch(e) {}
+  }
+
+  renderClassifierPreview({
+    hsk_level,
+    lesson_num,
+    order_index,
+    lesson_title,
+    hanzi,
+    pinyin,
+    meaning,
+    usage_note,
+    collocations,
+    examples,
+    exercises
+  });
+
+  openModal('classifierPreviewModal');
+}
+
+function renderClassifierPreview(data) {
+  const container = document.getElementById('classifierPreviewBody');
+  if (!container) return;
+
+  const lessonLabel = data.lesson_title ? data.lesson_title : `Bài ${data.lesson_num || 1}`;
+
+  // Collocations HTML
+  let collocationsHtml = '';
+  if (Array.isArray(data.collocations) && data.collocations.length > 0) {
+    collocationsHtml = `
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-top:6px">
+        ${data.collocations.map(col => `
+          <div style="background:#f0fdf4;border:1px solid #16a34a;border-radius:4px;padding:10px 12px;box-shadow:2px 2px 0 #1a1a1a">
+            <div style="display:flex;justify-content:space-between;align-items:baseline">
+              <span class="hanzi" style="font-size:18px;font-weight:700;color:var(--ink)">${escapeHtml(col.noun || '')}</span>
+              ${col.pinyin ? `<span style="font-size:12px;font-style:italic;color:#15803d;font-weight:600">${escapeHtml(col.pinyin)}</span>` : ''}
+            </div>
+            ${col.phrase ? `<div style="font-size:14px;font-weight:800;color:var(--orange);margin-top:4px">${escapeHtml(col.phrase)}</div>` : ''}
+            ${col.meaning ? `<div style="font-size:12px;color:var(--ink-soft);margin-top:2px;font-weight:500">👉 ${escapeHtml(col.meaning)}</div>` : ''}
+          </div>
+        `).join('')}
+      </div>
+    `;
+  } else {
+    collocationsHtml = '<div style="font-size:13px;color:var(--ink-faint);font-style:italic">Chưa có danh từ đi kèm</div>';
+  }
+
+  // Examples HTML
+  let examplesHtml = '';
+  if (Array.isArray(data.examples) && data.examples.length > 0) {
+    examplesHtml = `
+      <div style="margin-top:6px;display:flex;flex-direction:column;gap:8px">
+        ${data.examples.map((ex, idx) => `
+          <div style="background:#faf8f5;border:var(--border-thin);border-left:4px solid var(--orange);padding:10px 14px;border-radius:3px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <span style="font-size:12px;font-weight:800;color:var(--orange)">#${idx + 1}</span>
+              <span class="hanzi" style="font-size:18px;font-weight:700;color:var(--ink)">${escapeHtml(ex.hanzi || '')}</span>
+            </div>
+            ${ex.pinyin ? `<div style="font-size:13px;font-style:italic;color:var(--teal);margin-top:2px;font-weight:600">${escapeHtml(ex.pinyin)}</div>` : ''}
+            ${ex.meaning ? `<div style="font-size:13px;color:var(--ink-soft);margin-top:3px;font-weight:500">👉 ${escapeHtml(ex.meaning)}</div>` : ''}
+          </div>
+        `).join('')}
+      </div>
+    `;
+  } else {
+    examplesHtml = '<div style="font-size:13px;color:var(--ink-faint);font-style:italic">Chưa có câu ví dụ</div>';
+  }
+
+  // Exercises HTML
+  let exercisesHtml = '';
+  if (Array.isArray(data.exercises) && data.exercises.length > 0) {
+    exercisesHtml = `
+      <div style="margin-top:6px;display:flex;flex-direction:column;gap:10px">
+        ${data.exercises.map((q, idx) => {
+          const typeLabel = q.type === 'choice' ? 'Trắc nghiệm' : 'Bài tập';
+          return `
+            <div style="background:#fffaf0;border:var(--border-thin);border-radius:3px;padding:12px 14px">
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+                <span class="badge" style="background:#fef3c7;color:#d97706;border-color:#d97706;font-size:10px">Câu ${idx + 1} • ${typeLabel}</span>
+                <strong style="font-size:13px;color:var(--ink)">${escapeHtml(q.question || q.prompt || '')}</strong>
+              </div>
+              ${Array.isArray(q.options) ? `
+                <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:6px;margin-top:8px">
+                  ${q.options.map(opt => {
+                    const isAns = (q.answer === opt);
+                    return `<div style="padding:6px 10px;font-size:12px;border:var(--border-thin);border-radius:2px;background:${isAns ? '#e6f7ed' : '#fff'};font-weight:${isAns ? '700' : '500'};color:${isAns ? '#047857' : 'var(--ink)'};display:flex;align-items:center;gap:6px">
+                      <span>${isAns ? '✓' : '○'}</span> ${escapeHtml(opt)}
+                    </div>`;
+                  }).join('')}
+                </div>
+              ` : ''}
+              ${q.answer && !Array.isArray(q.options) ? `<div style="margin-top:6px;font-size:12px;color:#047857;font-weight:700">Đáp án: ${escapeHtml(q.answer)}</div>` : ''}
+              ${q.explain ? `<div style="margin-top:6px;font-size:12px;color:var(--ink-soft);font-style:italic">💡 Giải thích: ${escapeHtml(q.explain)}</div>` : ''}
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  container.innerHTML = `
+    <!-- Header meta info -->
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span class="badge badge-hsk">HSK ${escapeHtml(String(data.hsk_level || 1))}</span>
+      <span class="badge" style="background:#f1f5f9;color:#334155;border-color:#94a3b8">${escapeHtml(lessonLabel)}</span>
+      <span class="badge" style="background:#e0f2fe;color:#0284c7;border-color:#0284c7">Thứ tự: ${escapeHtml(String(data.order_index || 1))}</span>
+    </div>
+
+    <!-- Classifier Main Card -->
+    <div style="background:var(--bg-white);border:var(--border);border-radius:4px;padding:18px;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <div class="hanzi" style="font-size:48px;font-weight:800;color:var(--orange);line-height:1">${escapeHtml(data.hanzi || '—')}</div>
+        <div>
+          <div style="font-size:18px;font-style:italic;font-weight:700;color:var(--teal)">${escapeHtml(data.pinyin || '')}</div>
+          <div style="font-size:16px;font-weight:800;color:var(--ink);margin-top:4px">👉 ${escapeHtml(data.meaning || 'Chưa có nghĩa')}</div>
+        </div>
+      </div>
+      ${data.usage_note ? `
+        <div style="background:#fff8ee;border-left:4px solid var(--orange);padding:10px 14px;border-radius:2px;font-size:13px;color:var(--ink);margin-top:4px">
+          <strong style="color:var(--orange)">💡 Mẹo & Quy tắc:</strong> ${escapeHtml(data.usage_note)}
+        </div>
+      ` : ''}
+    </div>
+
+    <!-- Collocations Card -->
+    <div style="background:var(--bg-white);border:var(--border);border-radius:4px;padding:16px;box-shadow:var(--shadow-sm)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="font-size:12px;font-weight:800;text-transform:uppercase;color:var(--ink-soft);letter-spacing:.5px">🏷️ Danh từ đi kèm phổ biến:</div>
+        <span class="badge" style="background:#f0fdf4;color:#16a34a;border-color:#16a34a">${Array.isArray(data.collocations) ? data.collocations.length : 0} danh từ</span>
+      </div>
+      ${collocationsHtml}
+    </div>
+
+    <!-- Examples Card -->
+    <div style="background:var(--bg-white);border:var(--border);border-radius:4px;padding:16px;box-shadow:var(--shadow-sm)">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="font-size:12px;font-weight:800;text-transform:uppercase;color:var(--ink-soft);letter-spacing:.5px">💬 Câu ví dụ minh họa:</div>
+        <span class="badge" style="background:#e0f2fe;color:#0284c7;border-color:#0284c7">${Array.isArray(data.examples) ? data.examples.length : 0} câu</span>
+      </div>
+      ${examplesHtml}
+    </div>
+
+    <!-- Exercises Card -->
+    ${exercisesHtml ? `
+      <div style="background:var(--bg-white);border:var(--border);border-radius:4px;padding:16px;box-shadow:var(--shadow-sm)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div style="font-size:12px;font-weight:800;text-transform:uppercase;color:var(--ink-soft);letter-spacing:.5px">📝 Bài tập ôn luyện:</div>
+          <span class="badge" style="background:#fef3c7;color:#d97706;border-color:#d97706">${Array.isArray(data.exercises) ? data.exercises.length : 0} bài</span>
+        </div>
+        ${exercisesHtml}
+      </div>
+    ` : ''}
+  `;
+}
+
+function previewClassifierFromImportTab() {
+  const text = document.getElementById('importClassifierAiPasteInput').value.trim();
+  if (!text) {
+    toast('Vui lòng dán dữ liệu do Bot AI trả về vào ô trên trước!', 'error');
+    return;
+  }
+  openClassifierModal();
+  document.getElementById('classifierAiPasteInput').value = text;
+  parseAndApplyAiClassifier(text);
+  previewClassifier();
+}
+
+function openClassifierModalWithAiData() {
+  const text = document.getElementById('importClassifierAiPasteInput').value.trim();
+  openClassifierModal();
+  if (text) {
+    document.getElementById('classifierAiPasteInput').value = text;
+    parseAndApplyAiClassifier(text);
+  }
 }
 
 async function saveClassifier() {
@@ -3124,6 +3452,13 @@ async function saveClassifier() {
       }
     }
 
+    // Tự động tìm session_id liên kết nếu có
+    let session_id = null;
+    if (allSessions && allSessions.length > 0) {
+      const matched = allSessions.find(s => s.hsk_level == hsk_level && (s.title || '').toLowerCase().includes(`bài ${lesson_num}`));
+      if (matched) session_id = matched.id;
+    }
+
     const payload = {
       hsk_level,
       lesson_num,
@@ -3137,34 +3472,51 @@ async function saveClassifier() {
       examples,
       exercises
     };
+    if (session_id) payload.session_id = session_id;
 
     if (id) {
-      await sbUpdate('classifiers', payload, `id=eq.${id}`);
+      await sbFetch('classifiers', {
+        method: 'PATCH',
+        filter: { 'id': 'eq.' + id },
+        body: payload
+      });
       toast('Đã cập nhật lượng từ thành công!');
     } else {
-      await sbInsert('classifiers', payload);
+      await sbFetch('classifiers', {
+        method: 'POST',
+        body: payload
+      });
       toast('Đã thêm lượng từ mới thành công!');
     }
 
+    // Cập nhật lại bộ lọc đang xem để hiển thị ngay lượng từ vừa thêm / sửa
+    localStorage.setItem('admin_classifier_hsk', hsk_level);
+    localStorage.setItem('admin_classifier_lesson', hsk_level + '-' + lesson_num);
+
     closeModal('classifierModal');
+    closeModal('classifierPreviewModal');
     await loadClassifiers();
   } catch (e) {
     toast('Lỗi lưu lượng từ: ' + e.message, 'error');
   }
 }
 
-async function deleteClassifier(id) {
+function deleteClassifier(id) {
   const c = allClassifiers.find(x => x.id === id);
   const name = c ? `"${c.hanzi}" (${c.meaning})` : 'lượng từ này';
-  if (!confirm(`Bạn có chắc chắn muốn xóa ${name} không?`)) return;
-
-  try {
-    await sbDelete('classifiers', `id=eq.${id}`);
-    toast('Đã xóa lượng từ thành công!');
-    await loadClassifiers();
-  } catch (e) {
-    toast('Lỗi xóa lượng từ: ' + e.message, 'error');
-  }
+  showConfirm(`Bạn có chắc chắn muốn xóa ${name} không?`, async (yes) => {
+    if (!yes) return;
+    try {
+      await sbFetch('classifiers', {
+        method: 'DELETE',
+        filter: { 'id': 'eq.' + id }
+      });
+      toast('Đã xóa lượng từ thành công!');
+      await loadClassifiers();
+    } catch (e) {
+      toast('Lỗi xóa lượng từ: ' + e.message, 'error');
+    }
+  });
 }
 
 function insertClassifierCollocationSample() {
@@ -3201,59 +3553,147 @@ function handleAiClassifierPaste(e) {
 }
 
 function parseAndApplyAiClassifier(rawText) {
-  const text = rawText || document.getElementById('classifierAiPasteInput').value.trim();
+  const textInput = document.getElementById('classifierAiPasteInput');
+  let text = (typeof rawText === 'string' && rawText.trim())
+    ? rawText.trim()
+    : (textInput ? textInput.value.trim() : '');
+
   if (!text) {
-    toast('Vui lòng dán dữ liệu AI vào ô trước!', 'error');
+    toast('Vui lòng dán dữ liệu Lượng từ vào ô trước!', 'error');
     return;
   }
 
-  try {
-    let jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      const data = JSON.parse(jsonMatch[0]);
-      if (data.hsk_level) document.getElementById('classifierHskInput').value = data.hsk_level;
-      if (data.lesson_num) document.getElementById('classifierLessonNumInput').value = data.lesson_num;
-      if (data.lesson_title) document.getElementById('classifierLessonTitleInput').value = data.lesson_title;
-      if (data.hanzi) document.getElementById('classifierHanziInput').value = data.hanzi;
-      if (data.pinyin) document.getElementById('classifierPinyinInput').value = data.pinyin;
-      if (data.meaning) document.getElementById('classifierMeaningInput').value = data.meaning;
-      if (data.usage_note) document.getElementById('classifierUsageNoteInput').value = data.usage_note;
-
-      if (data.collocations && Array.isArray(data.collocations)) {
-        document.getElementById('classifierCollocationsInput').value = data.collocations
-          .map(col => `${col.noun || ''} | ${col.pinyin || ''} | ${col.phrase || ''} | ${col.meaning || ''}`).join('\n');
-      }
-      if (data.examples && Array.isArray(data.examples)) {
-        document.getElementById('classifierExamplesInput').value = data.examples
-          .map(ex => `${ex.hanzi || ''} | ${ex.pinyin || ''} | ${ex.meaning || ''}`).join('\n');
-      }
-      if (data.exercises && Array.isArray(data.exercises)) {
-        document.getElementById('classifierExercisesInput').value = JSON.stringify(data.exercises, null, 2);
-      }
-      toast('Đã phân tích và điền form lượng từ thành công!');
-      return;
-    }
-  } catch(e) {
-    console.warn('Không thể parse JSON lượng từ, chuyển qua parse dạng text:', e);
+  if (text.startsWith('```')) {
+    text = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
   }
 
-  const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
-  lines.forEach(l => {
-    if (/^(lượng từ|hanzi|chữ hán)[:：]/i.test(l)) {
-      document.getElementById('classifierHanziInput').value = l.split(/[:：]/)[1].trim();
-    } else if (/^(pinyin|phiên âm)[:：]/i.test(l)) {
-      document.getElementById('classifierPinyinInput').value = l.split(/[:：]/)[1].trim();
-    } else if (/^(nghĩa|meaning)[:：]/i.test(l)) {
-      document.getElementById('classifierMeaningInput').value = l.split(/[:：]/)[1].trim();
-    } else if (/^(mẹo|quy tắc|cách dùng|usage)[:：]/i.test(l)) {
-      document.getElementById('classifierUsageNoteInput').value = l.split(/[:：]/)[1].trim();
+  let data = null;
+
+  // 1. Thử parse JSON sạch
+  try {
+    const cleaned = cleanJsonString(text);
+    const parsed = JSON.parse(cleaned);
+    data = Array.isArray(parsed) ? parsed[0] : parsed;
+  } catch(e) {}
+
+  // 2. Thử tìm khối JSON {...}
+  if (!data) {
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        const cleanedMatch = cleanJsonString(jsonMatch[0]);
+        data = JSON.parse(cleanedMatch);
+      } catch(e) {}
     }
-  });
-  toast('Đã phân tích văn bản và điền form!');
+  }
+
+  // 3. Fallback: Parse nhãn text / regex
+  if (!data) {
+    data = {};
+    const hskMatch = text.match(/"hsk_level"\s*:\s*(\d+)/i) || text.match(/(?:HSK|Cấp độ)\s*[:：]\s*(\d+)/i) || text.match(/HSK\s*(\d+)/i);
+    if (hskMatch) data.hsk_level = parseInt(hskMatch[1]);
+
+    const lessonMatch = text.match(/"lesson_num"\s*:\s*(\d+)/i) || text.match(/(?:Bài số|Bài|Lesson)\s*[:：]\s*(\d+)/i) || text.match(/Bài\s*(\d+)/i);
+    if (lessonMatch) data.lesson_num = parseInt(lessonMatch[1]);
+
+    const lessonTitleMatch = text.match(/"lesson_title"\s*:\s*"([^"\n]+)"/i) || text.match(/(?:Tên bài|Chủ đề bài)\s*[:：]\s*["']?([^"'\n]+)["']?/i);
+    if (lessonTitleMatch) data.lesson_title = lessonTitleMatch[1].trim();
+
+    const orderMatch = text.match(/"order_index"\s*:\s*(\d+)/i) || text.match(/(?:Thứ tự|Order)\s*[:：]\s*(\d+)/i);
+    if (orderMatch) data.order_index = parseInt(orderMatch[1]);
+
+    const hanziMatch = text.match(/"hanzi"\s*:\s*"([^"\n]+)"/i) || text.match(/(?:Lượng từ|Chữ Hán|Hanzi)\s*[:：]\s*["']?([^"'\n]+)["']?/i);
+    if (hanziMatch) data.hanzi = hanziMatch[1].trim();
+
+    const pinyinMatch = text.match(/"pinyin"\s*:\s*"([^"\n]+)"/i) || text.match(/(?:Pinyin|Phiên âm)\s*[:：]\s*["']?([^"'\n]+)["']?/i);
+    if (pinyinMatch) data.pinyin = pinyinMatch[1].trim();
+
+    const meaningMatch = text.match(/"meaning"\s*:\s*"([^"\n]+)"/i) || text.match(/(?:Nghĩa|Ý nghĩa|Meaning)\s*[:：]\s*["']?([^"'\n]+)["']?/i);
+    if (meaningMatch) data.meaning = meaningMatch[1].trim();
+
+    const usageMatch = text.match(/"usage_note"\s*:\s*"([^"\n]+)"/i) || text.match(/(?:Quy tắc|Mẹo|Cách dùng|Usage|Note)\s*[:：]\s*["']?([^"'\n]+)["']?/i);
+    if (usageMatch) data.usage_note = usageMatch[1].trim();
+
+    // Collocations
+    const collocSection = text.match(/(?:Danh từ đi kèm|Collocations)\s*[:：]\s*([\s\S]*?)(?=(?:Ví dụ|Câu ví dụ|Bài tập|$))/i);
+    if (collocSection) {
+      data.collocations = [];
+      collocSection[1].trim().split('\n').forEach(l => {
+        const row = l.trim().replace(/^[-*•\d.]+\s*/, '');
+        if (!row) return;
+        const p = row.split('|').map(s => s.trim());
+        if (p.length >= 2) {
+          data.collocations.push({
+            noun: p[0],
+            pinyin: p[1] || '',
+            phrase: p[2] || '',
+            meaning: p[3] || ''
+          });
+        }
+      });
+    }
+
+    // Examples
+    const exSection = text.match(/(?:Ví dụ|Câu ví dụ)\s*[:：]\s*([\s\S]*?)(?=(?:Bài tập|$))/i);
+    if (exSection) {
+      data.examples = [];
+      exSection[1].trim().split('\n').forEach(l => {
+        const row = l.trim().replace(/^[-*•\d.]+\s*/, '');
+        if (!row) return;
+        const p = row.split('|').map(s => s.trim());
+        if (p.length >= 2) {
+          data.examples.push({
+            hanzi: p[0],
+            pinyin: p[1] || '',
+            meaning: p[2] || ''
+          });
+        }
+      });
+    }
+
+    // Exercises
+    const exerciseJsonMatch = text.match(/"exercises"\s*:\s*(\[\s*\{[\s\S]*\}\s*\])/i) || text.match(/\[\s*\{[\s\S]*\}\s*\]/);
+    if (exerciseJsonMatch) {
+      try {
+        data.exercises = JSON.parse(cleanJsonString(exerciseJsonMatch[1] || exerciseJsonMatch[0]));
+      } catch(e) {}
+    }
+  }
+
+  if (!data || (!data.hanzi && !data.meaning && !data.pinyin)) {
+    toast('Không nhận diện được dữ liệu lượng từ. Vui lòng kiểm tra lại!', 'error');
+    return;
+  }
+
+  if (data.hsk_level) document.getElementById('classifierHskInput').value = data.hsk_level;
+  if (data.lesson_num) document.getElementById('classifierLessonNumInput').value = data.lesson_num;
+  if (data.lesson_title) document.getElementById('classifierLessonTitleInput').value = data.lesson_title;
+  if (data.order_index) document.getElementById('classifierOrderIndexInput').value = data.order_index;
+  if (data.hanzi) document.getElementById('classifierHanziInput').value = data.hanzi;
+  if (data.pinyin) document.getElementById('classifierPinyinInput').value = data.pinyin;
+  if (data.meaning) document.getElementById('classifierMeaningInput').value = data.meaning;
+  if (data.usage_note) document.getElementById('classifierUsageNoteInput').value = data.usage_note;
+
+  if (Array.isArray(data.collocations) && data.collocations.length > 0) {
+    document.getElementById('classifierCollocationsInput').value = data.collocations
+      .map(col => `${col.noun || ''} | ${col.pinyin || ''} | ${col.phrase || ''} | ${col.meaning || ''}`).join('\n');
+  }
+
+  if (Array.isArray(data.examples) && data.examples.length > 0) {
+    document.getElementById('classifierExamplesInput').value = data.examples
+      .map(ex => `${ex.hanzi || ''} | ${ex.pinyin || ''} | ${ex.meaning || ''}`).join('\n');
+  }
+
+  if (Array.isArray(data.exercises) && data.exercises.length > 0) {
+    document.getElementById('classifierExercisesInput').value = JSON.stringify(data.exercises, null, 2);
+  }
+
+  toast('⚡ Đã tự động phân tích và điền toàn bộ dữ liệu lượng từ vào form!');
+  return data;
 }
 
-// Bắt sự kiện lọc và ngăn modal bị đóng khi ấn ra ngoài
-document.addEventListener('DOMContentLoaded', () => {
+// Bắt sự kiện lọc và tương tác
+function initEventListeners() {
   // 1. Khi ấn ra ngoài vùng nền đen thì sẽ tự động đóng modal
   document.querySelectorAll('.modal-overlay').forEach(overlay => {
     overlay.addEventListener('click', (e) => {
@@ -3267,11 +3707,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // 2. Lưu bộ lọc HSK
-  const hskFilter = document.getElementById('grammarHskFilter');
-  if (hskFilter) {
-    hskFilter.addEventListener('change', () => {
-      const val = hskFilter.value;
+  // 2. Lưu bộ lọc HSK Ngữ pháp
+  const ghskFilter = document.getElementById('grammarHskFilter');
+  if (ghskFilter) {
+    ghskFilter.addEventListener('change', () => {
+      const val = ghskFilter.value;
       localStorage.setItem('admin_grammar_hsk', val);
       localStorage.setItem('admin_grammar_lesson', '');
       populateGrammarLessonFilter();
@@ -3280,11 +3720,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // 3. Lưu bộ lọc Bài học
-  const lessonFilter = document.getElementById('grammarLessonFilter');
-  if (lessonFilter) {
-    lessonFilter.addEventListener('change', () => {
-      const val = lessonFilter.value;
+  // 3. Lưu bộ lọc Bài học Ngữ pháp
+  const glessonFilter = document.getElementById('grammarLessonFilter');
+  if (glessonFilter) {
+    glessonFilter.addEventListener('change', () => {
+      const val = glessonFilter.value;
       localStorage.setItem('admin_grammar_lesson', val);
       grammarPage = 1;
       renderGrammarTable();
@@ -3292,14 +3732,53 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // 4. Tìm kiếm ngữ pháp
-  const searchInput = document.getElementById('grammarSearch');
-  if (searchInput) {
-    searchInput.addEventListener('input', () => {
+  const gsearchInput = document.getElementById('grammarSearch');
+  if (gsearchInput) {
+    gsearchInput.addEventListener('input', () => {
       grammarPage = 1;
       renderGrammarTable();
     });
   }
-});
+
+  // 5. Lưu bộ lọc HSK Lượng từ
+  const cHskFilter = document.getElementById('classifierHskFilter');
+  if (cHskFilter) {
+    cHskFilter.addEventListener('change', () => {
+      const val = cHskFilter.value;
+      localStorage.setItem('admin_classifier_hsk', val);
+      localStorage.setItem('admin_classifier_lesson', '');
+      populateClassifierLessonFilter();
+      classifierPage = 1;
+      renderClassifiersTable();
+    });
+  }
+
+  // 6. Lưu bộ lọc Bài học Lượng từ
+  const cLessonFilter = document.getElementById('classifierLessonFilter');
+  if (cLessonFilter) {
+    cLessonFilter.addEventListener('change', () => {
+      const val = cLessonFilter.value;
+      localStorage.setItem('admin_classifier_lesson', val);
+      classifierPage = 1;
+      renderClassifiersTable();
+    });
+  }
+
+  // 7. Tìm kiếm Lượng từ
+  const cSearchInput = document.getElementById('classifierSearch');
+  if (cSearchInput) {
+    cSearchInput.addEventListener('input', () => {
+      classifierPage = 1;
+      renderClassifiersTable();
+    });
+  }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initEventListeners);
+} else {
+  initEventListeners();
+}
 
 </script>
 </body>
