@@ -275,6 +275,7 @@ tr:hover td{background:#fff5eb}
       </select>
       <input type="text" id="grammarSearch" placeholder="Tìm tên ngữ pháp, cấu trúc..." style="min-width:240px">
       <button class="btn btn-jade" onclick="openGrammarModal()">+ Thêm ngữ pháp</button>
+      <button class="btn btn-ghost" onclick="exportCurrentGrammarListToJson()" title="Xuất các điểm ngữ pháp đang lọc ra JSON và copy">📋 Xuất JSON</button>
     </div>
     <div class="table-wrap">
       <table>
@@ -314,6 +315,7 @@ tr:hover td{background:#fff5eb}
       </select>
       <input type="text" id="classifierSearch" placeholder="Tìm lượng từ, pinyin, nghĩa, danh từ..." style="min-width:260px">
       <button class="btn btn-jade" onclick="openClassifierModal()">+ Thêm lượng từ</button>
+      <button class="btn btn-ghost" onclick="exportCurrentClassifierListToJson()" title="Xuất các lượng từ đang lọc ra JSON và copy">📋 Xuất JSON</button>
     </div>
     <div class="table-wrap">
       <table>
@@ -381,11 +383,14 @@ tr:hover td{background:#fff5eb}
           </div>
         </div>
         <textarea id="pasteArea" placeholder="Dán dữ liệu từ vựng tại đây...
-Mỗi dòng một từ, phân cách bởi dấu phẩy/tab/chấm phẩy
+Mỗi dòng một từ, phân cách bởi dấu phẩy/tab/chấm phẩy (hoặc dán mảng JSON)
 → Sau khi dán, chọn ánh xạ đúng cột ở phía dưới rồi bấm Import"></textarea>
-        <div style="margin-top:12px;display:flex;align-items:center;gap:10px">
-          <span style="font-size:13px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.3px">Mẫu dữ liệu:</span>
-          <button class="btn btn-ghost btn-sm" onclick="navigator.clipboard.writeText(document.getElementById('pasteSample').value);toast('Đã copy!')">📋 Copy</button>
+        <div style="margin-top:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-size:13px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.3px">Mẫu dữ liệu:</span>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="navigator.clipboard.writeText(document.getElementById('pasteSample').value);toast('Đã copy!')">📋 Copy CSV</button>
+            <button type="button" class="btn btn-ghost btn-sm" onclick="exportPasteVocabToJson()" title="Xuất dữ liệu từ vựng thành JSON và copy">📋 Xuất JSON</button>
+          </div>
         </div>
         <textarea id="pasteSample" readonly style="margin-top:6px;width:100%;min-height:130px;padding:10px 12px;border:var(--border-thin);border-radius:2px;font-size:13px;background:#f5f0e6;color:var(--ink-soft);font-family:'Inter','Noto Serif SC',sans-serif;font-weight:600;resize:none;cursor:default">你好,nǐ hǎo,đại từ,Xin chào
 谢谢,xiè xie,động từ,Cảm ơn
@@ -402,7 +407,10 @@ Mỗi dòng một từ, phân cách bởi dấu phẩy/tab/chấm phẩy
           <label>Nghĩa:</label><select id="pmapMeaning"></select>
           <label>Loại:</label><select id="pmapType"><option value="">— bỏ qua —</option></select>
           <label>Session:</label><span style="font-weight:600;color:var(--ink-faint)">(Chọn ở trên)</span>
-          <button class="btn btn-jade" onclick="importPasteData()">Import</button>
+          <div style="margin-left:auto;display:flex;gap:8px">
+            <button type="button" class="btn btn-ghost" onclick="exportPasteVocabToJson()">📋 Xuất JSON</button>
+            <button class="btn btn-jade" onclick="importPasteData()">Import</button>
+          </div>
         </div>
       </div>
 
@@ -439,14 +447,16 @@ Mỗi dòng một từ, phân cách bởi dấu phẩy/tab/chấm phẩy
             </strong>
             <div style="display:flex;gap:8px">
               <button type="button" class="btn btn-ghost btn-sm" onclick="previewGrammarFromImportTab()" style="background:#fff">👁️ Xem trước</button>
+              <button type="button" class="btn btn-ghost btn-sm" onclick="exportImportTabGrammarToJson()" style="background:#fff" title="Xuất dữ liệu ô dán thành chuẩn JSON và copy">📋 Xuất JSON</button>
               <button type="button" class="btn btn-jade btn-sm" onclick="openGrammarModalWithAiData()">⚡ Điền Form & Chi tiết</button>
             </div>
           </div>
           <textarea id="importGrammarAiPasteInput" rows="6" 
-            placeholder="Dán toàn bộ kết quả bot AI trả về vào đây (JSON hoặc văn bản)...&#10;Bấm '👁️ Xem trước' để duyệt ngay giao diện bài học, hoặc '⚡ Điền Form & Chi tiết' để chỉnh sửa!"
+            placeholder="Dán toàn bộ kết quả bot AI trả về vào đây (JSON hoặc văn bản)...&#10;Bấm '👁️ Xem trước' để duyệt ngay giao diện bài học, '📋 Xuất JSON' để sao chép chuẩn JSON, hoặc '⚡ Điền Form & Chi tiết' để chỉnh sửa!"
             style="font-family:monospace;font-size:13px;width:100%"></textarea>
           <div style="margin-top:10px;display:flex;justify-content:flex-end;gap:8px">
             <button type="button" class="btn btn-ghost" onclick="previewGrammarFromImportTab()">👁️ Xem trước ngữ pháp</button>
+            <button type="button" class="btn btn-ghost" onclick="exportImportTabGrammarToJson()">📋 Xuất JSON & Copy</button>
             <button type="button" class="btn btn-jade" onclick="openGrammarModalWithAiData()">⚡ Mở Form chỉnh sửa & Lưu</button>
           </div>
         </div>
@@ -461,14 +471,16 @@ Mỗi dòng một từ, phân cách bởi dấu phẩy/tab/chấm phẩy
             </strong>
             <div style="display:flex;gap:8px">
               <button type="button" class="btn btn-ghost btn-sm" onclick="previewClassifierFromImportTab()" style="background:#fff">👁️ Xem trước</button>
+              <button type="button" class="btn btn-ghost btn-sm" onclick="exportImportTabClassifierToJson()" style="background:#fff" title="Xuất dữ liệu ô dán thành chuẩn JSON và copy">📋 Xuất JSON</button>
               <button type="button" class="btn btn-jade btn-sm" onclick="openClassifierModalWithAiData()">⚡ Điền Form & Chi tiết</button>
             </div>
           </div>
           <textarea id="importClassifierAiPasteInput" rows="6" 
-            placeholder="Dán toàn bộ kết quả bot AI trả về vào đây (JSON hoặc văn bản)...&#10;Bấm '👁️ Xem trước' để duyệt ngay giao diện, hoặc '⚡ Điền Form & Chi tiết' để chỉnh sửa và lưu!"
+            placeholder="Dán toàn bộ kết quả bot AI trả về vào đây (JSON hoặc văn bản)...&#10;Bấm '👁️ Xem trước' để duyệt ngay giao diện, '📋 Xuất JSON' để sao chép chuẩn JSON, hoặc '⚡ Điền Form & Chi tiết' để chỉnh sửa và lưu!"
             style="font-family:monospace;font-size:13px;width:100%"></textarea>
           <div style="margin-top:10px;display:flex;justify-content:flex-end;gap:8px">
             <button type="button" class="btn btn-ghost" onclick="previewClassifierFromImportTab()">👁️ Xem trước lượng từ</button>
+            <button type="button" class="btn btn-ghost" onclick="exportImportTabClassifierToJson()">📋 Xuất JSON & Copy</button>
             <button type="button" class="btn btn-jade" onclick="openClassifierModalWithAiData()">⚡ Mở Form chỉnh sửa & Lưu</button>
           </div>
         </div>
@@ -501,9 +513,12 @@ Mỗi dòng một từ, phân cách bởi dấu phẩy/tab/chấm phẩy
     <div class="form-group"><label>Loại từ (tùy chọn)</label><input id="vocabTypeInput" placeholder="danh từ, động từ..."></div>
     <div class="form-group"><label>Nghĩa</label><input id="vocabMeaningInput" placeholder="Xin chào"></div>
     <div class="form-group"><label>Session</label><select id="vocabSessionInput"></select></div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('vocabModal')">Hủy</button>
-      <button class="btn btn-jade" onclick="saveVocab()">Lưu</button>
+    <div class="modal-actions" style="display:flex;justify-content:space-between;align-items:center">
+      <button type="button" class="btn btn-ghost btn-sm" onclick="exportVocabModalToJson()" title="Xuất từ vựng thành JSON và copy">📋 Xuất JSON</button>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-ghost" onclick="closeModal('vocabModal')">Hủy</button>
+        <button class="btn btn-jade" onclick="saveVocab()">Lưu</button>
+      </div>
     </div>
   </div>
 </div>
@@ -525,6 +540,7 @@ Mỗi dòng một từ, phân cách bởi dấu phẩy/tab/chấm phẩy
         </strong>
         <div style="display:flex;gap:6px">
           <button type="button" class="btn btn-ghost btn-sm" onclick="previewGrammar()" style="background:#fff" title="Xem trước giao diện">👁️ Xem trước</button>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="exportGrammarToJson()" style="background:#fff" title="Xuất thông tin form thành JSON và copy vào clipboard">📋 Xuất JSON</button>
           <button type="button" class="btn btn-jade btn-sm" onclick="parseAndApplyAiGrammar()">⚡ Phân tích & Điền Form</button>
         </div>
       </div>
@@ -594,7 +610,10 @@ Mỗi dòng một từ, phân cách bởi dấu phẩy/tab/chấm phẩy
     </div>
 
     <div class="modal-actions" style="display:flex;justify-content:space-between;align-items:center">
-      <button type="button" class="btn btn-ghost" onclick="previewGrammar()">👁️ Xem trước</button>
+      <div style="display:flex;gap:8px">
+        <button type="button" class="btn btn-ghost" onclick="previewGrammar()">👁️ Xem trước</button>
+        <button type="button" class="btn btn-ghost" onclick="exportGrammarToJson()">📋 Xuất JSON</button>
+      </div>
       <div style="display:flex;gap:10px">
         <button type="button" class="btn btn-ghost" onclick="closeModal('grammarModal')">Hủy</button>
         <button type="button" class="btn btn-jade" onclick="saveGrammar()">Lưu</button>
@@ -619,6 +638,7 @@ Mỗi dòng một từ, phân cách bởi dấu phẩy/tab/chấm phẩy
         </strong>
         <div style="display:flex;gap:6px">
           <button type="button" class="btn btn-ghost btn-sm" onclick="previewClassifier()" style="background:#fff" title="Xem trước giao diện">👁️ Xem trước</button>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="exportClassifierToJson()" style="background:#fff" title="Xuất thông tin form thành JSON và copy vào clipboard">📋 Xuất JSON</button>
           <button type="button" class="btn btn-jade btn-sm" onclick="parseAndApplyAiClassifier()">⚡ Phân tích & Điền Form</button>
         </div>
       </div>
@@ -701,7 +721,10 @@ Mỗi dòng một từ, phân cách bởi dấu phẩy/tab/chấm phẩy
     </div>
 
     <div class="modal-actions" style="display:flex;justify-content:space-between;align-items:center">
-      <button type="button" class="btn btn-ghost" onclick="previewClassifier()">👁️ Xem trước</button>
+      <div style="display:flex;gap:8px">
+        <button type="button" class="btn btn-ghost" onclick="previewClassifier()">👁️ Xem trước</button>
+        <button type="button" class="btn btn-ghost" onclick="exportClassifierToJson()">📋 Xuất JSON</button>
+      </div>
       <div style="display:flex;gap:10px">
         <button type="button" class="btn btn-ghost" onclick="closeModal('classifierModal')">Hủy</button>
         <button type="button" class="btn btn-jade" onclick="saveClassifier()">Lưu Lượng từ</button>
@@ -727,7 +750,10 @@ Mỗi dòng một từ, phân cách bởi dấu phẩy/tab/chấm phẩy
 
     <div class="modal-actions" style="margin-top:20px;border-top:var(--border-thin);padding-top:16px;display:flex;justify-content:space-between;align-items:center">
       <button type="button" class="btn btn-ghost" onclick="closeModal('classifierPreviewModal')">Quay lại chỉnh sửa</button>
-      <button type="button" class="btn btn-jade" onclick="closeModal('classifierPreviewModal');saveClassifier()">💾 Lưu lượng từ này</button>
+      <div style="display:flex;gap:10px">
+        <button type="button" class="btn btn-ghost" onclick="exportClassifierToJson()">📋 Copy JSON</button>
+        <button type="button" class="btn btn-jade" onclick="closeModal('classifierPreviewModal');saveClassifier()">💾 Lưu lượng từ này</button>
+      </div>
     </div>
   </div>
 </div>
@@ -749,7 +775,10 @@ Mỗi dòng một từ, phân cách bởi dấu phẩy/tab/chấm phẩy
 
     <div class="modal-actions" style="margin-top:20px;border-top:var(--border-thin);padding-top:16px;display:flex;justify-content:space-between;align-items:center">
       <button type="button" class="btn btn-ghost" onclick="closeModal('grammarPreviewModal')">Quay lại chỉnh sửa</button>
-      <button type="button" class="btn btn-jade" onclick="closeModal('grammarPreviewModal');saveGrammar()">💾 Lưu điểm ngữ pháp này</button>
+      <div style="display:flex;gap:10px">
+        <button type="button" class="btn btn-ghost" onclick="exportGrammarToJson()">📋 Copy JSON</button>
+        <button type="button" class="btn btn-jade" onclick="closeModal('grammarPreviewModal');saveGrammar()">💾 Lưu điểm ngữ pháp này</button>
+      </div>
     </div>
   </div>
 </div>
@@ -888,6 +917,46 @@ function closeModal(id) {
   } else {
     document.getElementById(id).classList.remove('open');
   }
+}
+
+async function copyTextToClipboard(text, successMsg = 'Đã sao chép vào bộ nhớ tạm!') {
+  if (!text) {
+    toast('Không có dữ liệu để sao chép!', 'error');
+    return false;
+  }
+  let copied = false;
+  if (navigator.clipboard && window.isSecureContext) {
+    try {
+      await navigator.clipboard.writeText(text);
+      copied = true;
+    } catch (err) {
+      console.warn('navigator.clipboard.writeText failed, using fallback:', err);
+    }
+  }
+  if (!copied) {
+    try {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.left = '-9999px';
+      textarea.style.top = '-9999px';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+      copied = document.execCommand('copy');
+      document.body.removeChild(textarea);
+    } catch (err) {
+      console.error('Fallback execCommand failed:', err);
+    }
+  }
+  if (copied) {
+    toast(successMsg);
+  } else {
+    window.prompt('Vui lòng nhấn Ctrl+C để sao chép dữ liệu JSON:', text);
+    toast(successMsg);
+  }
+  return true;
 }
 
 function formatDate(d) {
@@ -1385,7 +1454,11 @@ function renderVocabTable() {
       <td>${statusBadge(v.review_status)}</td>
       <td>${formatDate(v.last_reviewed_at)}</td>
       <td>${formatDate(v.created_at)}</td>
-      <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openVocabModal(${v.id})">Sửa</button> <button class="btn btn-seal btn-sm" onclick="event.stopPropagation();deleteVocab(${v.id})">Xóa</button></td>
+      <td>
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();exportVocabItemToJson(${v.id})" title="Copy JSON từ này">📋 JSON</button>
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openVocabModal(${v.id})">Sửa</button>
+        <button class="btn btn-seal btn-sm" onclick="event.stopPropagation();deleteVocab(${v.id})">Xóa</button>
+      </td>
     </tr>`;
   }).join('');
 
@@ -1450,6 +1523,37 @@ function deleteVocab(id) {
       loadVocabulary();
     } catch (e) { toast('Lỗi: ' + e.message, 'error'); }
   });
+}
+
+function exportVocabModalToJson() {
+  const hanzi = document.getElementById('vocabHanziInput').value.trim();
+  const pinyin = document.getElementById('vocabPinyinInput').value.trim();
+  const word_type = document.getElementById('vocabTypeInput').value.trim();
+  const meaning = document.getElementById('vocabMeaningInput').value.trim();
+  const obj = {
+    hanzi: hanzi || '你好',
+    pinyin: pinyin || 'nǐ hǎo',
+    word_type: word_type || 'đại từ',
+    meaning: meaning || 'Xin chào'
+  };
+  const jsonStr = JSON.stringify(obj, null, 2);
+  copyTextToClipboard(jsonStr, `📋 Đã copy JSON từ vựng: ${obj.hanzi}!`);
+}
+
+function exportVocabItemToJson(id) {
+  const v = allVocab.find(x => x.id === id);
+  if (!v) {
+    toast('Không tìm thấy từ vựng!', 'error');
+    return;
+  }
+  const obj = {
+    hanzi: v.hanzi,
+    pinyin: v.pinyin,
+    word_type: v.word_type || '',
+    meaning: v.meaning
+  };
+  const jsonStr = JSON.stringify(obj, null, 2);
+  copyTextToClipboard(jsonStr, `📋 Đã copy JSON từ vựng: ${v.hanzi}!`);
 }
 
 // ===== PAGINATION =====
@@ -1587,8 +1691,37 @@ async function importFileData() {
 document.getElementById('pasteArea').addEventListener('input', function() {
   const text = this.value.trim();
   if (!text) { document.getElementById('pastePreview').style.display = 'none'; document.getElementById('pasteMapping').style.display = 'none'; return; }
+
+  // Tự động nhận diện nếu dán mảng JSON từ vựng
+  if (text.startsWith('[') || text.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(cleanJsonString(text));
+      const arr = Array.isArray(parsed) ? parsed : (parsed.words || parsed.vocabulary || parsed.data || [parsed]);
+      if (Array.isArray(arr) && arr.length > 0 && typeof arr[0] === 'object') {
+        const displayHeaders = ['Hán tự', 'Pinyin', 'Loại từ', 'Nghĩa'];
+        const rows = arr.map(item => ({
+          'Hán tự': item.hanzi || item.chinese || item.word || '',
+          'Pinyin': item.pinyin || '',
+          'Loại từ': item.word_type || item.type || '',
+          'Nghĩa': item.meaning || item.vietnamese || ''
+        }));
+        pasteParsedRows = rows;
+        renderPreviewTable('pastePreview', rows, displayHeaders);
+        setupMapping(['pmapHanzi','pmapPinyin','pmapMeaning','pmapType'], displayHeaders);
+        document.getElementById('pmapHanzi').value = 'Hán tự';
+        document.getElementById('pmapPinyin').value = 'Pinyin';
+        document.getElementById('pmapType').value = 'Loại từ';
+        document.getElementById('pmapMeaning').value = 'Nghĩa';
+        document.getElementById('pasteMapping').style.display = 'flex';
+        return;
+      }
+    } catch(err) {
+      // Tiếp tục phân tích chuỗi văn bản nếu parse JSON lỗi
+    }
+  }
+
   let delim = ',';
-  if (text.includes('	')) delim = '	';
+  if (text.includes('\t')) delim = '\t';
   else if (text.includes(';')) delim = ';';
   const lines = text.split('\n').filter(l => l.trim());
   const headers = ['Cột 1','Cột 2','Cột 3','Cột 4','Cột 5'];
@@ -1619,23 +1752,14 @@ document.getElementById('pasteArea').addEventListener('input', function() {
 async function importPasteData() {
   const text = document.getElementById('pasteArea').value.trim();
   if (!text) { toast('Vui lòng dán dữ liệu từ vựng vào ô trước!', 'error'); return; }
-  let delim = ',';
-  if (text.includes('\t')) delim = '\t';
-  else if (text.includes(';')) delim = ';';
-  const lines = text.split('\n').filter(l => l.trim());
-  const headers = ['Cột 1','Cột 2','Cột 3','Cột 4','Cột 5'];
-  const maxCols = Math.max(...lines.map(l => l.split(delim).length));
-  const actualHeaders = headers.slice(0, maxCols);
-  const rows = lines.map((line, i) => {
-    const cols = line.split(delim);
-    const obj = {};
-    headers.forEach((h, j) => obj[h] = (cols[j] || '').trim());
-    return obj;
-  });
-  pasteParsedRows = rows;
+
+  if (!pasteParsedRows || pasteParsedRows.length === 0) {
+    document.getElementById('pasteArea').dispatchEvent(new Event('input'));
+  }
 
   const pmapHanzi = document.getElementById('pmapHanzi');
   if (!pmapHanzi.value || !pmapHanzi.children.length) {
+    const actualHeaders = Object.keys(pasteParsedRows[0] || {});
     setupMapping(['pmapHanzi','pmapPinyin','pmapMeaning','pmapType'], actualHeaders);
     if (actualHeaders.length >= 4) {
       document.getElementById('pmapHanzi').value = actualHeaders[0];
@@ -1649,7 +1773,67 @@ async function importPasteData() {
     }
   }
   document.getElementById('pasteMapping').style.display = 'flex';
-  await doImport(rows, 'pmapHanzi', 'pmapPinyin', 'pmapMeaning', 'pmapType', 'pmapSessionSelect');
+  await doImport(pasteParsedRows, 'pmapHanzi', 'pmapPinyin', 'pmapMeaning', 'pmapType', 'pmapSessionSelect');
+}
+
+function exportPasteVocabToJson() {
+  let items = [];
+  const text = document.getElementById('pasteArea').value.trim();
+  if (text && (text.startsWith('[') || text.startsWith('{'))) {
+    try {
+      const parsed = JSON.parse(cleanJsonString(text));
+      const arr = Array.isArray(parsed) ? parsed : (parsed.words || parsed.vocabulary || parsed.data || [parsed]);
+      if (Array.isArray(arr)) {
+        items = arr.map(item => ({
+          hanzi: item.hanzi || item.chinese || item.word || '',
+          pinyin: item.pinyin || '',
+          word_type: item.word_type || item.type || '',
+          meaning: item.meaning || item.vietnamese || ''
+        })).filter(it => it.hanzi);
+      }
+    } catch(e) {}
+  }
+
+  if (items.length === 0 && pasteParsedRows && pasteParsedRows.length > 0) {
+    const mapH = document.getElementById('pmapHanzi') ? document.getElementById('pmapHanzi').value : '';
+    const mapP = document.getElementById('pmapPinyin') ? document.getElementById('pmapPinyin').value : '';
+    const mapM = document.getElementById('pmapMeaning') ? document.getElementById('pmapMeaning').value : '';
+    const mapT = document.getElementById('pmapType') ? document.getElementById('pmapType').value : '';
+
+    items = pasteParsedRows.map(r => ({
+      hanzi: (mapH && r[mapH]) ? r[mapH] : (r['Hán tự'] || r['Cột 1'] || ''),
+      pinyin: (mapP && r[mapP]) ? r[mapP] : (r['Pinyin'] || r['Cột 2'] || ''),
+      word_type: (mapT && r[mapT]) ? r[mapT] : (r['Loại từ'] || r['Cột 3'] || ''),
+      meaning: (mapM && r[mapM]) ? r[mapM] : (r['Nghĩa'] || r['Cột 4'] || r['Cột 3'] || '')
+    })).filter(it => it.hanzi);
+  }
+
+  if (items.length === 0) {
+    const sid = document.getElementById('pmapSessionSelect') ? document.getElementById('pmapSessionSelect').value : '';
+    if (sid && allVocab && allVocab.length > 0) {
+      const sessWords = allVocab.filter(v => v.session_id == sid);
+      if (sessWords.length > 0) {
+        items = sessWords.map(v => ({
+          hanzi: v.hanzi,
+          pinyin: v.pinyin,
+          word_type: v.word_type || '',
+          meaning: v.meaning
+        }));
+      }
+    }
+  }
+
+  if (items.length === 0) {
+    items = [
+      { "hanzi": "你好", "pinyin": "nǐ hǎo", "word_type": "đại từ", "meaning": "Xin chào" },
+      { "hanzi": "谢谢", "pinyin": "xiè xie", "word_type": "động từ", "meaning": "Cảm ơn" },
+      { "hanzi": "学生", "pinyin": "xué shēng", "word_type": "danh từ", "meaning": "Học sinh" },
+      { "hanzi": "老师", "pinyin": "lǎo shī", "word_type": "danh từ", "meaning": "Giáo viên" }
+    ];
+  }
+
+  const jsonStr = JSON.stringify(items, null, 2);
+  copyTextToClipboard(jsonStr, `📋 Đã xuất và copy JSON ${items.length} từ vựng vào bộ nhớ tạm!`);
 }
 
 // Form tab
@@ -2215,6 +2399,7 @@ function renderGrammarTable() {
       <td>${g.order_index || 1}</td>
       <td>${formatDate(g.created_at)}</td>
       <td>
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();exportGrammarItemToJson(${g.id})" title="Copy JSON điểm ngữ pháp này">📋 JSON</button>
         <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openGrammarModal(${g.id})">Sửa</button>
         <button class="btn btn-seal btn-sm" onclick="event.stopPropagation();deleteGrammar(${g.id})">Xóa</button>
       </td>
@@ -2721,6 +2906,251 @@ function openGrammarModalWithAiData() {
   }
 }
 
+function getGrammarFormData() {
+  const hsk_level = parseInt(document.getElementById('grammarHskInput').value) || 1;
+  const lesson_num = parseInt(document.getElementById('grammarLessonNumInput').value) || 1;
+  const order_index = parseInt(document.getElementById('grammarOrderIndexInput').value) || 1;
+  const lesson_title = document.getElementById('grammarLessonTitleInput').value.trim() || `Bài ${lesson_num}`;
+  const title = document.getElementById('grammarTitleInput').value.trim();
+  const structure = document.getElementById('grammarStructureInput').value.trim();
+  const explanation = document.getElementById('grammarExplanationInput').value.trim();
+
+  const rawExamples = document.getElementById('grammarExamplesInput').value.trim();
+  let examples = [];
+  if (rawExamples) {
+    if (rawExamples.startsWith('[') && rawExamples.endsWith(']')) {
+      try { examples = JSON.parse(rawExamples); } catch(e) {}
+    } else {
+      rawExamples.split('\n').forEach(line => {
+        const trimmed = line.trim();
+        if (!trimmed) return;
+        const parts = trimmed.split('|').map(s => s.trim());
+        if (parts.length >= 2) {
+          examples.push({
+            hanzi: parts[0] || '',
+            pinyin: parts[1] || '',
+            meaning: parts[2] || ''
+          });
+        } else {
+          examples.push({
+            hanzi: parts[0],
+            pinyin: '',
+            meaning: ''
+          });
+        }
+      });
+    }
+  }
+
+  const rawExercises = document.getElementById('grammarExercisesInput').value.trim();
+  let exercises = [];
+  if (rawExercises) {
+    try {
+      const parsed = JSON.parse(rawExercises);
+      if (Array.isArray(parsed)) exercises = parsed;
+    } catch(e) {}
+  }
+
+  return {
+    hsk_level,
+    lesson_num,
+    order_index,
+    lesson_title,
+    title: title || 'Điểm ngữ pháp mẫu',
+    structure: structure || '',
+    explanation: explanation || '',
+    examples,
+    exercises
+  };
+}
+
+function parseAndExtractGrammarData(manualText) {
+  let text = (typeof manualText === 'string' && manualText.trim())
+    ? manualText.trim()
+    : (document.getElementById('grammarAiPasteInput') ? document.getElementById('grammarAiPasteInput').value.trim() : '');
+
+  if (!text) return null;
+
+  if (text.startsWith('```')) {
+    text = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+  }
+
+  let data = null;
+  try {
+    const cleaned = cleanJsonString(text);
+    const parsed = JSON.parse(cleaned);
+    data = Array.isArray(parsed) ? parsed[0] : parsed;
+  } catch(e) {}
+
+  if (!data) {
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        const cleanedMatch = cleanJsonString(jsonMatch[0]);
+        data = JSON.parse(cleanedMatch);
+      } catch(e) {}
+    }
+  }
+
+  if (!data) {
+    data = {};
+    const titleMatch = text.match(/"title"\s*:\s*"([^"\n]+)"/i) ||
+                       text.match(/(?:Tên ngữ pháp|Tiêu đề|Điểm ngữ pháp)\s*[:：]\s*["']?([^"'\n]+)["']?/i);
+    if (titleMatch) data.title = titleMatch[1].trim();
+
+    const structMatch = text.match(/"structure"\s*:\s*"([^"\n]+)"/i) ||
+                        text.match(/(?:Cấu trúc|Công thức)\s*[:：]\s*["']?([^"'\n]+)["']?/i);
+    if (structMatch) data.structure = structMatch[1].trim();
+
+    const hskMatch = text.match(/"hsk_level"\s*:\s*(\d+)/i) || text.match(/(?:HSK|Cấp độ)\s*[:：]\s*(\d+)/i);
+    if (hskMatch) data.hsk_level = parseInt(hskMatch[1]);
+
+    const lessonMatch = text.match(/"lesson_num"\s*:\s*(\d+)/i) || text.match(/(?:Bài số|Bài|Lesson)\s*[:：]\s*(\d+)/i);
+    if (lessonMatch) data.lesson_num = parseInt(lessonMatch[1]);
+
+    const lessonTitleMatch = text.match(/"lesson_title"\s*:\s*"([^"\n]+)"/i) || text.match(/(?:Tên bài|Chủ đề)\s*[:：]\s*["']?([^"'\n]+)["']?/i);
+    if (lessonTitleMatch) data.lesson_title = lessonTitleMatch[1].trim();
+
+    const orderMatch = text.match(/"order_index"\s*:\s*(\d+)/i) || text.match(/(?:Thứ tự|Order)\s*[:：]\s*(\d+)/i);
+    if (orderMatch) data.order_index = parseInt(orderMatch[1]);
+
+    const expMatch = text.match(/"explanation"\s*:\s*"([\s\S]*?)(?<!\\)"/i) ||
+                     text.match(/(?:Giải thích|Chi tiết|Nội dung|Ý nghĩa)\s*[:：]\s*([\s\S]*?)(?=(?:Ví dụ|Câu ví dụ|Bài tập|examples|exercises|\n\n[A-Z]|$))/i);
+    if (expMatch) data.explanation = expMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"').trim();
+
+    const jsonExMatch = text.match(/"examples"\s*:\s*(\[\s*\{[\s\S]*?\}\s*\])/i);
+    if (jsonExMatch) {
+      try { data.examples = JSON.parse(cleanJsonString(jsonExMatch[1])); } catch(e) {}
+    }
+    if (!data.examples) {
+      const exSection = text.match(/(?:Ví dụ|Câu ví dụ|Examples)\s*[:：]\s*([\s\S]*?)(?=(?:Bài tập|exercises|$))/i);
+      if (exSection) {
+        data.examples = [];
+        exSection[1].trim().split('\n').forEach(l => {
+          const row = l.trim().replace(/^[-* \d.]+\s*/, '');
+          if (!row) return;
+          const p = row.split('|').map(s => s.trim());
+          if (p.length >= 2) {
+            data.examples.push({ hanzi: p[0], pinyin: p[1] || '', meaning: p[2] || '' });
+          }
+        });
+      }
+    }
+
+    const exMatch = text.match(/"exercises"\s*:\s*(\[\s*\{[\s\S]*\}\s*\])/i) || text.match(/\[\s*\{[\s\S]*"question"[\s\S]*\}\s*\]/i);
+    if (exMatch) {
+      try { data.exercises = JSON.parse(cleanJsonString(exMatch[1] || exMatch[0])); } catch(e) {}
+    }
+  }
+
+  if (data && typeof data === 'object') {
+    return {
+      hsk_level: data.hsk_level || 1,
+      lesson_num: data.lesson_num || 1,
+      order_index: data.order_index || 1,
+      lesson_title: data.lesson_title || `Bài ${data.lesson_num || 1}`,
+      title: data.title || '',
+      structure: data.structure || '',
+      explanation: data.explanation || '',
+      examples: Array.isArray(data.examples) ? data.examples : [],
+      exercises: Array.isArray(data.exercises) ? data.exercises : []
+    };
+  }
+  return null;
+}
+
+function exportGrammarToJson() {
+  const title = document.getElementById('grammarTitleInput').value.trim();
+  const pasteVal = document.getElementById('grammarAiPasteInput') ? document.getElementById('grammarAiPasteInput').value.trim() : '';
+  if (!title && pasteVal) {
+    parseAndApplyAiGrammar();
+  }
+  const data = getGrammarFormData();
+  const jsonStr = JSON.stringify(data, null, 2);
+  const pasteInput = document.getElementById('grammarAiPasteInput');
+  if (pasteInput) pasteInput.value = jsonStr;
+  copyTextToClipboard(jsonStr, '📋 Đã xuất và copy JSON Ngữ pháp vào bộ nhớ tạm!');
+}
+
+function exportImportTabGrammarToJson() {
+  const inputEl = document.getElementById('importGrammarAiPasteInput');
+  const rawText = inputEl ? inputEl.value.trim() : '';
+  let obj = null;
+  if (rawText) {
+    obj = parseAndExtractGrammarData(rawText);
+  }
+  if (!obj || !obj.title) {
+    obj = {
+      hsk_level: 1,
+      lesson_num: 1,
+      order_index: 1,
+      lesson_title: "Bài 1: 你好 (Xin chào)",
+      title: "1. Đại từ nhân xưng: 你 (nǐ), 您 (nín), 你们 (nǐmen)",
+      structure: "你 (bạn) | 您 (ngài) | 你们 (các bạn)",
+      explanation: "• <b>你</b>: dùng trong giao tiếp thân mật, ngang hàng hoặc với người nhỏ tuổi hơn.<br>• <b>您</b>: dùng để thể hiện sự kính trọng, lễ phép với người lớn tuổi, thầy cô.<br>• <b>你们</b>: đại từ số nhiều (các bạn).",
+      examples: [
+        { "hanzi": "你好！", "pinyin": "Nǐ hǎo!", "meaning": "Chào bạn!" },
+        { "hanzi": "老师，您好！", "pinyin": "Lǎoshī, nín hǎo!", "meaning": "Em chào thầy giáo ạ!" },
+        { "hanzi": "你们好！", "pinyin": "Nǐmen hǎo!", "meaning": "Chào các bạn!" }
+      ],
+      exercises: [
+        {
+          "type": "choice",
+          "question": "Chào thầy giáo bằng sự tôn trọng: 老师，___ 好！",
+          "options": ["您", "你", "吗", "谁"],
+          "answer": "您",
+          "explain": "Với thầy cô ta dùng kính ngữ 您 (nín)."
+        }
+      ]
+    };
+  }
+  const jsonStr = JSON.stringify(obj, null, 2);
+  if (inputEl) inputEl.value = jsonStr;
+  copyTextToClipboard(jsonStr, '📋 Đã xuất và copy JSON Ngữ pháp vào bộ nhớ tạm!');
+}
+
+function exportGrammarItemToJson(id) {
+  const g = allGrammar.find(x => x.id === id);
+  if (!g) {
+    toast('Không tìm thấy điểm ngữ pháp!', 'error');
+    return;
+  }
+  const cleanObj = {
+    hsk_level: g.hsk_level || 1,
+    lesson_num: g.lesson_num || 1,
+    order_index: g.order_index || 1,
+    lesson_title: g.lesson_title || `Bài ${g.lesson_num || 1}`,
+    title: g.title || '',
+    structure: g.structure || '',
+    explanation: g.explanation || '',
+    examples: Array.isArray(g.examples) ? g.examples : [],
+    exercises: Array.isArray(g.exercises) ? g.exercises : []
+  };
+  const jsonStr = JSON.stringify(cleanObj, null, 2);
+  copyTextToClipboard(jsonStr, `📋 Đã copy JSON ngữ pháp: ${g.title || g.id}!`);
+}
+
+function exportCurrentGrammarListToJson() {
+  const filtered = getFilteredGrammar();
+  if (!filtered || filtered.length === 0) {
+    toast('Không có ngữ pháp nào trong danh sách đang lọc để xuất!', 'error');
+    return;
+  }
+  const list = filtered.map(g => ({
+    hsk_level: g.hsk_level || 1,
+    lesson_num: g.lesson_num || 1,
+    order_index: g.order_index || 1,
+    lesson_title: g.lesson_title || `Bài ${g.lesson_num || 1}`,
+    title: g.title || '',
+    structure: g.structure || '',
+    explanation: g.explanation || '',
+    examples: Array.isArray(g.examples) ? g.examples : [],
+    exercises: Array.isArray(g.exercises) ? g.exercises : []
+  }));
+  const jsonStr = JSON.stringify(list, null, 2);
+  copyTextToClipboard(jsonStr, `📋 Đã copy JSON ${list.length} điểm ngữ pháp đang lọc!`);
+}
+
 async function saveGrammar() {
   try {
     const id = document.getElementById('grammarEditId').value;
@@ -3006,6 +3436,7 @@ function renderClassifiersTable() {
       <td>${c.order_index || 1}</td>
       <td>${formatDate(c.created_at)}</td>
       <td>
+        <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();exportClassifierItemToJson(${c.id})" title="Copy JSON lượng từ này">📋 JSON</button>
         <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openClassifierModal(${c.id})">Sửa</button>
         <button class="btn btn-seal btn-sm" onclick="event.stopPropagation();deleteClassifier(${c.id})">Xóa</button>
       </td>
@@ -3344,6 +3775,322 @@ function openClassifierModalWithAiData() {
     document.getElementById('classifierAiPasteInput').value = text;
     parseAndApplyAiClassifier(text);
   }
+}
+
+function getClassifierFormData() {
+  const hsk_level = parseInt(document.getElementById('classifierHskInput').value) || 1;
+  const lesson_num = parseInt(document.getElementById('classifierLessonNumInput').value) || 1;
+  const order_index = parseInt(document.getElementById('classifierOrderIndexInput').value) || 1;
+  const lesson_title = document.getElementById('classifierLessonTitleInput').value.trim() || `Bài ${lesson_num}`;
+  const hanzi = document.getElementById('classifierHanziInput').value.trim();
+  const pinyin = document.getElementById('classifierPinyinInput').value.trim();
+  const meaning = document.getElementById('classifierMeaningInput').value.trim();
+  const usage_note = document.getElementById('classifierUsageNoteInput').value.trim();
+
+  const rawColloc = document.getElementById('classifierCollocationsInput').value.trim();
+  let collocations = [];
+  if (rawColloc) {
+    if (rawColloc.startsWith('[') && rawColloc.endsWith(']')) {
+      try { collocations = JSON.parse(rawColloc); } catch(e) {}
+    } else {
+      rawColloc.split('\n').forEach(line => {
+        const trimmed = line.trim();
+        if (!trimmed) return;
+        const parts = trimmed.split('|').map(s => s.trim());
+        if (parts.length >= 4) {
+          collocations.push({
+            noun: parts[0] || '',
+            pinyin: parts[1] || '',
+            phrase: parts[2] || '',
+            meaning: parts[3] || ''
+          });
+        } else if (parts.length >= 2) {
+          collocations.push({
+            noun: parts[0] || '',
+            pinyin: parts[1] || '',
+            phrase: `一${hanzi}${parts[0]}`,
+            meaning: parts[2] || ''
+          });
+        } else if (parts.length === 1) {
+          collocations.push({
+            noun: parts[0],
+            pinyin: '',
+            phrase: `一${hanzi}${parts[0]}`,
+            meaning: ''
+          });
+        }
+      });
+    }
+  }
+
+  const rawExamples = document.getElementById('classifierExamplesInput').value.trim();
+  let examples = [];
+  if (rawExamples) {
+    if (rawExamples.startsWith('[') && rawExamples.endsWith(']')) {
+      try { examples = JSON.parse(rawExamples); } catch(e) {}
+    } else {
+      rawExamples.split('\n').forEach(line => {
+        const trimmed = line.trim();
+        if (!trimmed) return;
+        const parts = trimmed.split('|').map(s => s.trim());
+        if (parts.length >= 2) {
+          examples.push({
+            hanzi: parts[0] || '',
+            pinyin: parts[1] || '',
+            meaning: parts[2] || ''
+          });
+        } else {
+          examples.push({
+            hanzi: parts[0],
+            pinyin: '',
+            meaning: ''
+          });
+        }
+      });
+    }
+  }
+
+  const rawExercises = document.getElementById('classifierExercisesInput').value.trim();
+  let exercises = [];
+  if (rawExercises) {
+    try {
+      const parsed = JSON.parse(rawExercises);
+      if (Array.isArray(parsed)) exercises = parsed;
+    } catch(e) {}
+  }
+
+  return {
+    hsk_level,
+    lesson_num,
+    order_index,
+    lesson_title,
+    hanzi: hanzi || '个',
+    pinyin: pinyin || 'gè',
+    meaning: meaning || 'cái, con, người',
+    usage_note: usage_note || '',
+    collocations,
+    examples,
+    exercises
+  };
+}
+
+function parseAndExtractClassifierData(rawText) {
+  const textInput = document.getElementById('classifierAiPasteInput');
+  let text = (typeof rawText === 'string' && rawText.trim())
+    ? rawText.trim()
+    : (textInput ? textInput.value.trim() : '');
+
+  if (!text) return null;
+
+  if (text.startsWith('```')) {
+    text = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+  }
+
+  let data = null;
+  try {
+    const cleaned = cleanJsonString(text);
+    const parsed = JSON.parse(cleaned);
+    data = Array.isArray(parsed) ? parsed[0] : parsed;
+  } catch(e) {}
+
+  if (!data) {
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        const cleanedMatch = cleanJsonString(jsonMatch[0]);
+        data = JSON.parse(cleanedMatch);
+      } catch(e) {}
+    }
+  }
+
+  if (!data) {
+    data = {};
+    const hskMatch = text.match(/"hsk_level"\s*:\s*(\d+)/i) || text.match(/(?:HSK|Cấp độ)\s*[:：]\s*(\d+)/i) || text.match(/HSK\s*(\d+)/i);
+    if (hskMatch) data.hsk_level = parseInt(hskMatch[1]);
+
+    const lessonMatch = text.match(/"lesson_num"\s*:\s*(\d+)/i) || text.match(/(?:Bài số|Bài|Lesson)\s*[:：]\s*(\d+)/i) || text.match(/Bài\s*(\d+)/i);
+    if (lessonMatch) data.lesson_num = parseInt(lessonMatch[1]);
+
+    const lessonTitleMatch = text.match(/"lesson_title"\s*:\s*"([^"\n]+)"/i) || text.match(/(?:Tên bài|Chủ đề bài)\s*[:：]\s*["']?([^"'\n]+)["']?/i);
+    if (lessonTitleMatch) data.lesson_title = lessonTitleMatch[1].trim();
+
+    const orderMatch = text.match(/"order_index"\s*:\s*(\d+)/i) || text.match(/(?:Thứ tự|Order)\s*[:：]\s*(\d+)/i);
+    if (orderMatch) data.order_index = parseInt(orderMatch[1]);
+
+    const hanziMatch = text.match(/"hanzi"\s*:\s*"([^"\n]+)"/i) || text.match(/(?:Lượng từ|Chữ Hán|Hanzi)\s*[:：]\s*["']?([^"'\n]+)["']?/i);
+    if (hanziMatch) data.hanzi = hanziMatch[1].trim();
+
+    const pinyinMatch = text.match(/"pinyin"\s*:\s*"([^"\n]+)"/i) || text.match(/(?:Pinyin|Phiên âm)\s*[:：]\s*["']?([^"'\n]+)["']?/i);
+    if (pinyinMatch) data.pinyin = pinyinMatch[1].trim();
+
+    const meaningMatch = text.match(/"meaning"\s*:\s*"([^"\n]+)"/i) || text.match(/(?:Nghĩa|Ý nghĩa|Meaning)\s*[:：]\s*["']?([^"'\n]+)["']?/i);
+    if (meaningMatch) data.meaning = meaningMatch[1].trim();
+
+    const usageMatch = text.match(/"usage_note"\s*:\s*"([^"\n]+)"/i) || text.match(/(?:Quy tắc|Mẹo|Cách dùng|Usage|Note)\s*[:：]\s*["']?([^"'\n]+)["']?/i);
+    if (usageMatch) data.usage_note = usageMatch[1].trim();
+
+    // Collocations
+    const collocSection = text.match(/(?:Danh từ đi kèm|Collocations)\s*[:：]\s*([\s\S]*?)(?=(?:Ví dụ|Câu ví dụ|Bài tập|$))/i);
+    if (collocSection) {
+      data.collocations = [];
+      collocSection[1].trim().split('\n').forEach(l => {
+        const row = l.trim().replace(/^[-*•\d.]+\s*/, '');
+        if (!row) return;
+        const p = row.split('|').map(s => s.trim());
+        if (p.length >= 2) {
+          data.collocations.push({
+            noun: p[0],
+            pinyin: p[1] || '',
+            phrase: p[2] || '',
+            meaning: p[3] || ''
+          });
+        }
+      });
+    }
+
+    // Examples
+    const exSection = text.match(/(?:Ví dụ|Câu ví dụ)\s*[:：]\s*([\s\S]*?)(?=(?:Bài tập|$))/i);
+    if (exSection) {
+      data.examples = [];
+      exSection[1].trim().split('\n').forEach(l => {
+        const row = l.trim().replace(/^[-*•\d.]+\s*/, '');
+        if (!row) return;
+        const p = row.split('|').map(s => s.trim());
+        if (p.length >= 2) {
+          data.examples.push({
+            hanzi: p[0],
+            pinyin: p[1] || '',
+            meaning: p[2] || ''
+          });
+        }
+      });
+    }
+
+    const exerciseJsonMatch = text.match(/"exercises"\s*:\s*(\[\s*\{[\s\S]*\}\s*\])/i) || text.match(/\[\s*\{[\s\S]*"question"[\s\S]*\}\s*\]/i);
+    if (exerciseJsonMatch) {
+      try {
+        data.exercises = JSON.parse(cleanJsonString(exerciseJsonMatch[1] || exerciseJsonMatch[0]));
+      } catch(e) {}
+    }
+  }
+
+  if (data && typeof data === 'object') {
+    return {
+      hsk_level: data.hsk_level || 1,
+      lesson_num: data.lesson_num || 1,
+      order_index: data.order_index || 1,
+      lesson_title: data.lesson_title || `Bài ${data.lesson_num || 1}`,
+      hanzi: data.hanzi || '',
+      pinyin: data.pinyin || '',
+      meaning: data.meaning || '',
+      usage_note: data.usage_note || '',
+      collocations: Array.isArray(data.collocations) ? data.collocations : [],
+      examples: Array.isArray(data.examples) ? data.examples : [],
+      exercises: Array.isArray(data.exercises) ? data.exercises : []
+    };
+  }
+  return null;
+}
+
+function exportClassifierToJson() {
+  const hanzi = document.getElementById('classifierHanziInput').value.trim();
+  const pasteVal = document.getElementById('classifierAiPasteInput') ? document.getElementById('classifierAiPasteInput').value.trim() : '';
+  if (!hanzi && pasteVal) {
+    parseAndApplyAiClassifier();
+  }
+  const data = getClassifierFormData();
+  const jsonStr = JSON.stringify(data, null, 2);
+  const pasteInput = document.getElementById('classifierAiPasteInput');
+  if (pasteInput) pasteInput.value = jsonStr;
+  copyTextToClipboard(jsonStr, '📋 Đã xuất và copy JSON Lượng từ vào bộ nhớ tạm!');
+}
+
+function exportImportTabClassifierToJson() {
+  const inputEl = document.getElementById('importClassifierAiPasteInput');
+  const rawText = inputEl ? inputEl.value.trim() : '';
+  let obj = null;
+  if (rawText) {
+    obj = parseAndExtractClassifierData(rawText);
+  }
+  if (!obj || !obj.hanzi) {
+    obj = {
+      hsk_level: 1,
+      lesson_num: 3,
+      order_index: 1,
+      lesson_title: "Bài 3: Cô ấy là người nước nào? (她是哪国人)",
+      hanzi: "张",
+      pinyin: "zhāng",
+      meaning: "tờ, tấm, chiếc",
+      usage_note: "Dùng cho các đồ vật mỏng, phẳng hoặc có bề mặt phẳng rộng (giấy, bàn, giường, vé, ảnh, thẻ)...",
+      collocations: [
+        { "noun": "桌子", "pinyin": "zhuōzi", "phrase": "一张桌子", "meaning": "một chiếc bàn" },
+        { "noun": "纸", "pinyin": "zhǐ", "phrase": "一张纸", "meaning": "một tờ giấy" },
+        { "noun": "票", "pinyin": "piào", "phrase": "两张票", "meaning": "hai tấm vé" }
+      ],
+      examples: [
+        { "hanzi": "我买了两张电影票。", "pinyin": "Wǒ mǎi le liǎng zhāng diànyǐng piào.", "meaning": "Tôi đã mua hai tấm vé xem phim." },
+        { "hanzi": "桌子上有一张纸。", "pinyin": "Zhuōzi shang yǒu yì zhāng zhǐ.", "meaning": "Trên bàn có một tờ giấy." }
+      ],
+      exercises: [
+        {
+          "type": "choice",
+          "question": "请给我一___白纸。",
+          "options": ["张", "条", "只", "双"],
+          "answer": "张",
+          "explain": "Giấy (纸) có bề mặt phẳng mỏng nên dùng lượng từ 张."
+        }
+      ]
+    };
+  }
+  const jsonStr = JSON.stringify(obj, null, 2);
+  if (inputEl) inputEl.value = jsonStr;
+  copyTextToClipboard(jsonStr, '📋 Đã xuất và copy JSON Lượng từ vào bộ nhớ tạm!');
+}
+
+function exportClassifierItemToJson(id) {
+  const c = allClassifiers.find(x => x.id === id);
+  if (!c) {
+    toast('Không tìm thấy lượng từ!', 'error');
+    return;
+  }
+  const cleanObj = {
+    hsk_level: c.hsk_level || 1,
+    lesson_num: c.lesson_num || 1,
+    order_index: c.order_index || 1,
+    lesson_title: c.lesson_title || `Bài ${c.lesson_num || 1}`,
+    hanzi: c.hanzi || '',
+    pinyin: c.pinyin || '',
+    meaning: c.meaning || '',
+    usage_note: c.usage_note || '',
+    collocations: Array.isArray(c.collocations) ? c.collocations : [],
+    examples: Array.isArray(c.examples) ? c.examples : [],
+    exercises: Array.isArray(c.exercises) ? c.exercises : []
+  };
+  const jsonStr = JSON.stringify(cleanObj, null, 2);
+  copyTextToClipboard(jsonStr, `📋 Đã copy JSON lượng từ: ${c.hanzi || c.id}!`);
+}
+
+function exportCurrentClassifierListToJson() {
+  const filtered = getFilteredClassifiers();
+  if (!filtered || filtered.length === 0) {
+    toast('Không có lượng từ nào trong danh sách đang lọc để xuất!', 'error');
+    return;
+  }
+  const list = filtered.map(c => ({
+    hsk_level: c.hsk_level || 1,
+    lesson_num: c.lesson_num || 1,
+    order_index: c.order_index || 1,
+    lesson_title: c.lesson_title || `Bài ${c.lesson_num || 1}`,
+    hanzi: c.hanzi || '',
+    pinyin: c.pinyin || '',
+    meaning: c.meaning || '',
+    usage_note: c.usage_note || '',
+    collocations: Array.isArray(c.collocations) ? c.collocations : [],
+    examples: Array.isArray(c.examples) ? c.examples : [],
+    exercises: Array.isArray(c.exercises) ? c.exercises : []
+  }));
+  const jsonStr = JSON.stringify(list, null, 2);
+  copyTextToClipboard(jsonStr, `📋 Đã copy JSON ${list.length} lượng từ đang lọc!`);
 }
 
 async function saveClassifier() {
