@@ -125,6 +125,8 @@ tr:hover td{background:var(--tr-hover)}
 /* Badges */
 .badge{display:inline-block;padding:3px 12px;border-radius:4px;font-size:11px;font-weight:800;border:2px solid;text-transform:uppercase;letter-spacing:.3px}
 .badge-hsk{background:var(--badge-hsk-bg);color:#7c3aed;border-color:#7c3aed}
+.badge-v2{background:#f1f5f9;color:#475569;border-color:#94a3b8}
+.badge-v3{background:#e0f2fe;color:#0284c7;border-color:#38bdf8}
 .badge-new{background:var(--badge-new-bg);color:#e63946;border-color:#e63946}
 .badge-reviewing{background:var(--badge-reviewing-bg);color:var(--orange);border-color:var(--orange)}
 .badge-master{background:var(--badge-master-bg);color:var(--teal);border-color:var(--teal)}
@@ -228,6 +230,11 @@ body.dark input[type=checkbox]{accent-color:var(--orange)}
     <button class="nav-item" data-page="classifiers"><span class="nav-icon">🏷️</span>Lượng từ</button>
     <button class="nav-item" data-page="import"><span class="nav-icon">📥</span>Import</button>
   </nav>
+  <div style="padding:10px 14px 0">
+    <button class="btn btn-ghost btn-sm" onclick="openSqlMigrationModal()" style="width:100%;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px" title="Xem lệnh SQL Supabase nâng cấp HSK 3.0">
+      <span>⚡ Lệnh SQL Supabase</span>
+    </button>
+  </div>
   <button class="dark-toggle" id="darkToggle" onclick="toggleDark()">
     <span class="toggle-track"><span class="toggle-thumb"></span></span>
     <span id="darkToggleLabel">Giao diện tối</span>
@@ -248,7 +255,7 @@ body.dark input[type=checkbox]{accent-color:var(--orange)}
     <div class="kpi-grid" id="kpiGrid"></div>
     <div class="charts-grid">
       <div class="chart-wrap full">
-        <div class="card-title">Số từ mỗi Session <select id="dashHskFilter" style="margin-left:10px;padding:4px 8px;border:2px solid #1a1a1a;border-radius:2px;font-size:12px;font-weight:700;background:var(--bg-white);color:var(--ink)"><option value="">Tất cả HSK</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></div>
+        <div class="card-title">Số từ mỗi Session <select id="dashVersionFilter" style="margin-left:10px;padding:4px 8px;border:2px solid #1a1a1a;border-radius:2px;font-size:12px;font-weight:700;background:var(--bg-white);color:var(--ink)"><option value="">Tất cả phiên bản</option><option value="2.0">HSK 2.0</option><option value="3.0">HSK 3.0</option></select><select id="dashHskFilter" style="margin-left:10px;padding:4px 8px;border:2px solid #1a1a1a;border-radius:2px;font-size:12px;font-weight:700;background:var(--bg-white);color:var(--ink)"><option value="">Tất cả HSK</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></div>
         <canvas id="barChart"></canvas>
       </div>
       <div class="chart-wrap">
@@ -266,6 +273,7 @@ body.dark input[type=checkbox]{accent-color:var(--orange)}
   <div class="page" id="page-sessions">
     <div class="toolbar">
       <input type="text" id="sessionSearch" placeholder="Tìm session..." style="min-width:200px">
+      <select id="sessionVersionFilter"><option value="">Tất cả phiên bản</option><option value="2.0">HSK 2.0</option><option value="3.0">HSK 3.0</option></select>
       <select id="sessionHskFilter"><option value="">Tất cả HSK</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select>
       <button class="btn btn-jade" onclick="openSessionModal()">+ Thêm mới</button>
     </div>
@@ -276,6 +284,7 @@ body.dark input[type=checkbox]{accent-color:var(--orange)}
   <!-- Vocabulary -->
   <div class="page" id="page-vocabulary">
     <div class="toolbar" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+      <select id="vocabVersionFilter"><option value="">Tất cả phiên bản</option><option value="2.0">HSK 2.0</option><option value="3.0">HSK 3.0</option></select>
       <select id="vocabHskFilter"><option value="">Tất cả HSK</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select>
       <select id="vocabSessionFilter"><option value="">Tất cả Sessions</option></select>
       <input type="text" id="vocabHanziSearch" placeholder="Tìm Hán tự..." style="min-width:120px">
@@ -314,6 +323,11 @@ body.dark input[type=checkbox]{accent-color:var(--orange)}
   <!-- Grammar -->
   <div class="page" id="page-grammar">
     <div class="toolbar">
+      <select id="grammarVersionFilter">
+        <option value="">Tất cả phiên bản</option>
+        <option value="2.0">HSK 2.0</option>
+        <option value="3.0">HSK 3.0</option>
+      </select>
       <select id="grammarHskFilter">
         <option value="">Tất cả HSK</option>
         <option value="1">HSK 1</option>
@@ -354,6 +368,11 @@ body.dark input[type=checkbox]{accent-color:var(--orange)}
   <!-- Classifiers -->
   <div class="page" id="page-classifiers">
     <div class="toolbar">
+      <select id="classifierVersionFilter">
+        <option value="">Tất cả phiên bản</option>
+        <option value="2.0">HSK 2.0</option>
+        <option value="3.0">HSK 3.0</option>
+      </select>
       <select id="classifierHskFilter">
         <option value="">Tất cả HSK</option>
         <option value="1">HSK 1</option>
@@ -419,6 +438,14 @@ body.dark input[type=checkbox]{accent-color:var(--orange)}
       <div class="tab-content" id="tabPaste">
         <div style="margin-bottom:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
           <div style="display:flex;align-items:center;gap:6px">
+            <label style="font-size:13px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.3px">Phiên bản:</label>
+            <select id="pasteVersion" style="padding:8px 12px;border:var(--border-thin);border-radius:2px;font-size:13px;font-weight:600;background:var(--bg-white);color:var(--ink);box-shadow:3px 3px 0 rgba(0,0,0,.12)">
+              <option value="">Tất cả phiên bản</option>
+              <option value="2.0">HSK 2.0</option>
+              <option value="3.0">HSK 3.0</option>
+            </select>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
             <label style="font-size:13px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.3px">HSK:</label>
             <select id="pasteHsk" style="padding:8px 12px;border:var(--border-thin);border-radius:2px;font-size:13px;font-weight:600;background:var(--bg-white);color:var(--ink);box-shadow:3px 3px 0 rgba(0,0,0,.12)">
               <option value="">Tất cả HSK</option>
@@ -469,6 +496,14 @@ Mỗi dòng một từ, phân cách bởi dấu phẩy/tab/chấm phẩy (hoặc
 
       <div class="tab-content" id="tabForm">
         <div style="margin-bottom:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:6px">
+            <label style="font-size:13px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.3px">Phiên bản:</label>
+            <select id="formVersion" style="padding:8px 12px;border:var(--border-thin);border-radius:2px;font-size:13px;font-weight:600;background:var(--bg-white);color:var(--ink);box-shadow:3px 3px 0 rgba(0,0,0,.12)">
+              <option value="">Tất cả phiên bản</option>
+              <option value="2.0">HSK 2.0</option>
+              <option value="3.0">HSK 3.0</option>
+            </select>
+          </div>
           <div style="display:flex;align-items:center;gap:6px">
             <label style="font-size:13px;font-weight:700;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.3px">HSK:</label>
             <select id="formHsk" style="padding:8px 12px;border:var(--border-thin);border-radius:2px;font-size:13px;font-weight:600;background:var(--bg-white);color:var(--ink);box-shadow:3px 3px 0 rgba(0,0,0,.12)">
@@ -547,6 +582,13 @@ Mỗi dòng một từ, phân cách bởi dấu phẩy/tab/chấm phẩy (hoặc
   <div class="modal">
     <h3 id="sessionModalTitle">Thêm Session</h3>
     <input type="hidden" id="sessionEditId">
+    <div class="form-group">
+      <label>Phiên bản HSK *</label>
+      <select id="sessionVersionInput">
+        <option value="2.0">HSK 2.0 (Giáo trình Chuẩn BLCUP)</option>
+        <option value="3.0">HSK 3.0 (Tiêu chuẩn mới 9 cấp)</option>
+      </select>
+    </div>
     <div class="form-group"><label>Title</label><input id="sessionTitleInput" placeholder="Tên session"></div>
     <div class="form-group"><label>HSK Level</label><select id="sessionHskInput"><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option></select></div>
     <div class="modal-actions">
@@ -604,7 +646,14 @@ Mỗi dòng một từ, phân cách bởi dấu phẩy/tab/chấm phẩy (hoặc
     </div>
     <input type="hidden" id="grammarEditId">
     
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px">
+      <div class="form-group">
+        <label>Phiên bản *</label>
+        <select id="grammarVersionInput">
+          <option value="2.0">HSK 2.0</option>
+          <option value="3.0">HSK 3.0</option>
+        </select>
+      </div>
       <div class="form-group">
         <label>Cấp độ HSK *</label>
         <select id="grammarHskInput">
@@ -702,7 +751,14 @@ Mỗi dòng một từ, phân cách bởi dấu phẩy/tab/chấm phẩy (hoặc
     </div>
     <input type="hidden" id="classifierEditId">
     
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px">
+      <div class="form-group">
+        <label>Phiên bản *</label>
+        <select id="classifierVersionInput">
+          <option value="2.0">HSK 2.0</option>
+          <option value="3.0">HSK 3.0</option>
+        </select>
+      </div>
       <div class="form-group">
         <label>Cấp độ HSK *</label>
         <select id="classifierHskInput">
@@ -1091,14 +1147,24 @@ let barChartInst, doughnutInst, lineChartInst;
 
 async function loadDashboard() {
   try {
-    allSessions = await sbFetch('sessions', { select: 'id,title,hsk_level', order: 'created_at.desc' });
+    allSessions = await sbFetch('sessions', { select: 'id,title,hsk_level,version', order: 'created_at.desc' });
     allVocab = await sbFetch('vocabulary', { select: 'id,session_id,hanzi,pinyin,meaning,review_status,created_at', order: 'created_at.desc' });
 
+    const verFilter = document.getElementById('dashVersionFilter') ? document.getElementById('dashVersionFilter').value : '';
+    const hskFilter = document.getElementById('dashHskFilter').value;
+
+    let targetSessions = allSessions;
+    if (verFilter) targetSessions = targetSessions.filter(s => (s.version || '2.0') === verFilter);
+    if (hskFilter) targetSessions = targetSessions.filter(s => s.hsk_level == hskFilter);
+
+    const targetSessionIds = new Set(targetSessions.map(s => s.id));
+    const targetVocab = (verFilter || hskFilter) ? allVocab.filter(v => targetSessionIds.has(v.session_id)) : allVocab;
+
     // KPI
-    const totalSessions = allSessions.length;
-    const totalVocab = allVocab.length;
-    const mastered = allVocab.filter(v => v.review_status === 2).length;
-    const reviewing = allVocab.filter(v => v.review_status === 1).length;
+    const totalSessions = targetSessions.length;
+    const totalVocab = targetVocab.length;
+    const mastered = targetVocab.filter(v => v.review_status === 2).length;
+    const reviewing = targetVocab.filter(v => v.review_status === 1).length;
     const pctMaster = totalVocab ? Math.round(mastered / totalVocab * 100) : 0;
     const pctReview = totalVocab ? Math.round(reviewing / totalVocab * 100) : 0;
 
@@ -1110,11 +1176,11 @@ async function loadDashboard() {
     `;
 
     // Bar chart - words per session
-    const hskFilter = document.getElementById('dashHskFilter').value;
-    let filteredSessions = allSessions;
-    if (hskFilter) filteredSessions = allSessions.filter(s => s.hsk_level == hskFilter);
-    const sessionLabels = filteredSessions.map(s => s.title || ('Session ' + s.id));
-    const sessionCounts = filteredSessions.map(s => allVocab.filter(v => v.session_id === s.id).length);
+    const sessionLabels = targetSessions.map(s => {
+      const vTag = s.version === '3.0' ? '[3.0] ' : '[2.0] ';
+      return vTag + (s.title || ('Session ' + s.id));
+    });
+    const sessionCounts = targetSessions.map(s => allVocab.filter(v => v.session_id === s.id).length);
 
     if (barChartInst) barChartInst.destroy();
     barChartInst = new Chart(document.getElementById('barChart'), {
@@ -1166,7 +1232,7 @@ const SESS_PER_PAGE = 20;
 
 async function loadSessions() {
   try {
-    allSessions = await sbFetch('sessions', { select: 'id,title,hsk_level,created_at', order: 'created_at.desc' });
+    allSessions = await sbFetch('sessions', { select: 'id,title,hsk_level,created_at,version', order: 'created_at.desc' });
     allVocab = await sbFetch('vocabulary', { select: 'id,session_id' });
     renderSessionsTable();
   } catch (e) { toast('Lỗi: ' + e.message, 'error'); }
@@ -1174,9 +1240,11 @@ async function loadSessions() {
 
 function getFilteredSessions() {
   const q = document.getElementById('sessionSearch').value.toLowerCase();
+  const ver = document.getElementById('sessionVersionFilter') ? document.getElementById('sessionVersionFilter').value : '';
   const hsk = document.getElementById('sessionHskFilter').value;
   return allSessions.filter(s => {
     if (q && !(s.title || '').toLowerCase().includes(q)) return false;
+    if (ver && (s.version || '2.0') !== ver) return false;
     if (hsk && s.hsk_level != hsk) return false;
     return true;
   });
@@ -1192,10 +1260,14 @@ function renderSessionsTable() {
   const tbody = document.getElementById('sessionsTbody');
   tbody.innerHTML = page.map(s => {
     const cnt = allVocab.filter(v => v.session_id === s.id).length;
+    const sVer = s.version || '2.0';
+    const verBadge = sVer === '3.0'
+      ? `<span class="badge badge-v3">3.0</span>`
+      : `<span class="badge badge-v2">2.0</span>`;
     return `<tr style="cursor:pointer" onclick="openSessionModal(${s.id})">
       <td>${s.id}</td>
       <td><strong>${s.title || ''}</strong></td>
-      <td><span class="badge badge-hsk">HSK ${s.hsk_level}</span></td>
+      <td>${verBadge} <span class="badge badge-hsk">HSK ${s.hsk_level}</span></td>
       <td>${cnt}</td>
       <td>${formatDate(s.created_at)}</td>
       <td><button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openSessionModal(${s.id})">Sửa</button> <button class="btn btn-seal btn-sm" onclick="event.stopPropagation();deleteSession(${s.id})">Xóa</button></td>
@@ -1206,11 +1278,18 @@ function renderSessionsTable() {
 }
 
 document.getElementById('sessionSearch').addEventListener('input', () => { sessPage = 1; renderSessionsTable(); });
+if (document.getElementById('sessionVersionFilter')) {
+  document.getElementById('sessionVersionFilter').addEventListener('change', () => { sessPage = 1; renderSessionsTable(); });
+}
 document.getElementById('sessionHskFilter').addEventListener('change', () => { sessPage = 1; renderSessionsTable(); });
 
 function openSessionModal(id) {
   const s = id ? allSessions.find(x => x.id === id) : null;
+  const currVer = document.getElementById('sessionVersionFilter') ? document.getElementById('sessionVersionFilter').value : '';
   document.getElementById('sessionEditId').value = s ? s.id : '';
+  if (document.getElementById('sessionVersionInput')) {
+    document.getElementById('sessionVersionInput').value = s ? (s.version || '2.0') : (currVer || '2.0');
+  }
   document.getElementById('sessionTitleInput').value = s ? s.title : '';
   document.getElementById('sessionHskInput').value = s ? s.hsk_level : '1';
   document.getElementById('sessionModalTitle').textContent = s ? 'Sửa Session' : 'Thêm Session';
@@ -1221,18 +1300,27 @@ async function saveSession() {
   try {
     const id = document.getElementById('sessionEditId').value;
     const title = document.getElementById('sessionTitleInput').value.trim();
+    const ver = document.getElementById('sessionVersionInput') ? document.getElementById('sessionVersionInput').value : '2.0';
     const hsk = parseInt(document.getElementById('sessionHskInput').value);
     if (!title) { toast('Nhập title!', 'error'); return; }
+    const payload = { title, hsk_level: hsk, version: ver };
     if (id) {
-      await sbFetch('sessions', { method: 'PATCH', filter: { 'id': 'eq.' + id }, body: { title, hsk_level: hsk } });
-      toast('Đã cập nhật');
+      await sbFetch('sessions', { method: 'PATCH', filter: { 'id': 'eq.' + id }, body: payload });
+      toast('Đã cập nhật session (' + ver + ')');
     } else {
-      await sbFetch('sessions', { method: 'POST', body: { title, hsk_level: hsk } });
-      toast('Đã thêm');
+      await sbFetch('sessions', { method: 'POST', body: payload });
+      toast('Đã thêm session (' + ver + ')');
     }
     closeModal('sessionModal');
     loadSessions();
-  } catch (e) { toast('Lỗi: ' + e.message, 'error'); }
+  } catch (e) {
+    if (e.message && e.message.includes('version')) {
+      toast('Chưa có cột version trên Supabase! Vui lòng bấm "⚡ Lệnh SQL Supabase" để cập nhật.', 'error');
+      openSqlMigrationModal();
+    } else {
+      toast('Lỗi: ' + e.message, 'error');
+    }
+  }
 }
 
 function deleteSession(id) {
@@ -1253,7 +1341,7 @@ const VOCAB_PER_PAGE = 20;
 
 async function loadVocabulary() {
   try {
-    allSessions = await sbFetch('sessions', { select: 'id,title,hsk_level' });
+    allSessions = await sbFetch('sessions', { select: 'id,title,hsk_level,version' });
     allVocab = await sbFetch('vocabulary', { select: 'id,session_id,hanzi,pinyin,word_type,meaning,review_status,created_at,last_reviewed_at', order: 'created_at.desc' });
     populateSessionDropdowns();
     renderVocabTable();
@@ -1261,10 +1349,16 @@ async function loadVocabulary() {
 }
 
 function populateSessionDropdowns() {
-  const opts = '<option value="">Tất cả Sessions</option>' + allSessions.map(s => `<option value="${s.id}">${s.title || 'Session ' + s.id}</option>`).join('');
+  const opts = '<option value="">Tất cả Sessions</option>' + allSessions.map(s => {
+    const vTag = s.version === '3.0' ? '[3.0] ' : '[2.0] ';
+    return `<option value="${s.id}">${vTag}${s.title || 'Session ' + s.id}</option>`;
+  }).join('');
   ['vocabSessionInput','mapSession'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.innerHTML = allSessions.map(s => `<option value="${s.id}">${s.title || 'Session ' + s.id}</option>`).join('');
+    if (el) el.innerHTML = allSessions.map(s => {
+      const vTag = s.version === '3.0' ? '[3.0] ' : '[2.0] ';
+      return `<option value="${s.id}">${vTag}${s.title || 'Session ' + s.id}</option>`;
+    }).join('');
   });
   populateVocabFilters();
   populateFormImportFilters();
@@ -1339,16 +1433,26 @@ function populatePasteSessionFilter() {
   }
 }
 
-// Bộ lọc 2 cấp: HSK (cấp 1) -> Session (cấp 2), nhớ lựa chọn qua localStorage
+// Bộ lọc 3 cấp: Phiên bản (cấp 1) -> HSK (cấp 2) -> Session (cấp 3), nhớ lựa chọn qua localStorage
 function populateVocabSessionFilter() {
+  const ver = document.getElementById('vocabVersionFilter') ? document.getElementById('vocabVersionFilter').value : '';
   const hsk = document.getElementById('vocabHskFilter').value;
-  const list = hsk ? allSessions.filter(s => s.hsk_level == hsk) : allSessions;
+  let list = allSessions;
+  if (ver) list = list.filter(s => (s.version || '2.0') === ver);
+  if (hsk) list = list.filter(s => s.hsk_level == hsk);
   document.getElementById('vocabSessionFilter').innerHTML =
     '<option value="">Tất cả Sessions</option>' +
-    list.map(s => `<option value="${s.id}">${s.title || 'Session ' + s.id}</option>`).join('');
+    list.map(s => {
+      const vTag = s.version === '3.0' ? '[3.0] ' : '[2.0] ';
+      return `<option value="${s.id}">${vTag}${s.title || 'Session ' + s.id}</option>`;
+    }).join('');
 }
 
 function populateVocabFilters() {
+  const verEl = document.getElementById('vocabVersionFilter');
+  const savedVer = localStorage.getItem('vocabVersionFilter');
+  if (savedVer && verEl) verEl.value = savedVer;
+
   const hskEl = document.getElementById('vocabHskFilter');
   const savedHsk = localStorage.getItem('vocabHskFilter');
   if (savedHsk && hskEl) hskEl.value = savedHsk;
@@ -1359,13 +1463,20 @@ function populateVocabFilters() {
 }
 
 function getFilteredVocab() {
+  const ver = document.getElementById('vocabVersionFilter') ? document.getElementById('vocabVersionFilter').value : '';
   const hsk = document.getElementById('vocabHskFilter').value;
   const sid = document.getElementById('vocabSessionFilter').value;
   const hq = document.getElementById('vocabHanziSearch').value.trim();
   const mq = document.getElementById('vocabMeaningSearch').value.trim();
   const st = document.getElementById('vocabStatusFilter').value;
   return allVocab.filter(v => {
-    if (hsk) { const s = allSessions.find(x => x.id === v.session_id); if (!s || s.hsk_level != hsk) return false; }
+    const s = allSessions.find(x => x.id === v.session_id);
+    if (ver) {
+      if (!s || (s.version || '2.0') !== ver) return false;
+    }
+    if (hsk) {
+      if (!s || s.hsk_level != hsk) return false;
+    }
     if (sid && v.session_id != sid) return false;
     if (hq && !v.hanzi.includes(hq)) return false;
     if (mq && !(v.meaning || '').toLowerCase().includes(mq.toLowerCase())) return false;
@@ -1502,7 +1613,7 @@ function renderVocabTable() {
       <td style="font-style:italic;color:var(--ink-soft)">${v.pinyin}</td>
       <td>${v.word_type || ''}</td>
       <td>${v.meaning || ''}</td>
-      <td><span class="badge badge-hsk">HSK ${sess ? sess.hsk_level : '?'}</span></td>
+      <td>${sess ? `${(sess.version==='3.0'?`<span class="badge badge-v3" style="font-size:10px;padding:1px 6px;margin-right:3px">3.0</span>`:`<span class="badge badge-v2" style="font-size:10px;padding:1px 6px;margin-right:3px">2.0</span>`)}<span class="badge badge-hsk">HSK ${sess.hsk_level}</span>` : '?'}</td>
       <td>${sess ? (sess.title || 'Session ' + sess.id) : '?'}</td>
       <td>${statusBadge(v.review_status)}</td>
       <td>${formatDate(v.last_reviewed_at)}</td>
@@ -2388,7 +2499,7 @@ function restoreGrammarFilters() {
 async function loadGrammar() {
   try {
     allGrammar = await sbFetch('grammar', {
-      select: 'id,hsk_level,lesson_num,lesson_title,title,structure,explanation,examples,exercises,order_index,created_at',
+      select: 'id,hsk_level,lesson_num,lesson_title,title,structure,explanation,examples,exercises,order_index,created_at,version',
       order: 'hsk_level.asc,lesson_num.asc,order_index.asc,id.asc'
     });
     restoreGrammarFilters();
@@ -2398,12 +2509,27 @@ async function loadGrammar() {
   }
 }
 
+function restoreGrammarFilters() {
+  const savedVer = localStorage.getItem('admin_grammar_ver');
+  const verEl = document.getElementById('grammarVersionFilter');
+  if (savedVer && verEl) verEl.value = savedVer;
+
+  const savedHsk = localStorage.getItem('admin_grammar_hsk');
+  const hskEl = document.getElementById('grammarHskFilter');
+  if (savedHsk && hskEl) {
+    hskEl.value = savedHsk;
+  }
+  populateGrammarLessonFilter();
+}
+
 function getFilteredGrammar() {
+  const ver = document.getElementById('grammarVersionFilter') ? document.getElementById('grammarVersionFilter').value : '';
   const hsk = document.getElementById('grammarHskFilter').value;
   const lessonKey = document.getElementById('grammarLessonFilter').value;
   const q = (document.getElementById('grammarSearch').value || '').trim().toLowerCase();
 
   return allGrammar.filter(g => {
+    if (ver && (g.version || '2.0') !== ver) return false;
     if (hsk && g.hsk_level != hsk) return false;
     if (lessonKey) {
       const [lHsk, lNum] = lessonKey.split('-');
@@ -2442,7 +2568,7 @@ function renderGrammarTable() {
     return `<tr style="cursor:pointer" onclick="openGrammarModal(${g.id})">
       <td>${g.id}</td>
       <td>
-        <span class="badge badge-hsk">HSK ${g.hsk_level || 1}</span>
+        ${(g.version==='3.0'?`<span class="badge badge-v3" style="font-size:10px;padding:1px 6px;margin-right:3px">3.0</span>`:`<span class="badge badge-v2" style="font-size:10px;padding:1px 6px;margin-right:3px">2.0</span>`)}<span class="badge badge-hsk">HSK ${g.hsk_level || 1}</span>
         <div style="font-size:12px;font-weight:600;color:var(--ink-soft);margin-top:2px">${escapeHtml(lessonLabel)}</div>
       </td>
       <td><strong>${escapeHtml(g.title || '')}</strong></td>
@@ -2467,7 +2593,11 @@ function renderGrammarTable() {
 
 function openGrammarModal(id) {
   const g = id ? allGrammar.find(x => x.id === id) : null;
+  const currVer = document.getElementById('grammarVersionFilter') ? document.getElementById('grammarVersionFilter').value : '';
   document.getElementById('grammarEditId').value = g ? g.id : '';
+  if (document.getElementById('grammarVersionInput')) {
+    document.getElementById('grammarVersionInput').value = g ? (g.version || '2.0') : (currVer || '2.0');
+  }
 
   // Xóa sạch ô dán AI cũ
   const aiInput = document.getElementById('grammarAiPasteInput');
@@ -3207,6 +3337,7 @@ function exportCurrentGrammarListToJson() {
 async function saveGrammar() {
   try {
     const id = document.getElementById('grammarEditId').value;
+    const version = document.getElementById('grammarVersionInput') ? document.getElementById('grammarVersionInput').value : '2.0';
     const hsk_level = parseInt(document.getElementById('grammarHskInput').value) || 1;
     const lesson_num = parseInt(document.getElementById('grammarLessonNumInput').value) || 1;
     const order_index = parseInt(document.getElementById('grammarOrderIndexInput').value) || 1;
@@ -3269,6 +3400,7 @@ async function saveGrammar() {
     }
 
     const payload = {
+      version,
       hsk_level,
       lesson_num,
       order_index,
@@ -3363,7 +3495,7 @@ const CLASSIFIERS_PER_PAGE = 20;
 async function loadClassifiers() {
   try {
     allClassifiers = await sbFetch('classifiers', {
-      select: 'id,session_id,hsk_level,lesson_num,lesson_title,hanzi,pinyin,meaning,usage_note,collocations,examples,exercises,order_index,created_at',
+      select: 'id,session_id,hsk_level,lesson_num,lesson_title,hanzi,pinyin,meaning,usage_note,collocations,examples,exercises,order_index,created_at,version',
       order: 'hsk_level.asc,lesson_num.asc,order_index.asc,id.asc'
     });
     restoreClassifierFilters();
@@ -3374,6 +3506,10 @@ async function loadClassifiers() {
 }
 
 function restoreClassifierFilters() {
+  const savedVer = localStorage.getItem('admin_classifier_ver');
+  const verEl = document.getElementById('classifierVersionFilter');
+  if (savedVer && verEl) verEl.value = savedVer;
+
   const savedHsk = localStorage.getItem('admin_classifier_hsk');
   const hskEl = document.getElementById('classifierHskFilter');
   if (savedHsk && hskEl) {
@@ -3422,11 +3558,13 @@ function populateClassifierLessonFilter() {
 }
 
 function getFilteredClassifiers() {
+  const ver = document.getElementById('classifierVersionFilter') ? document.getElementById('classifierVersionFilter').value : '';
   const hsk = document.getElementById('classifierHskFilter').value;
   const lessonKey = document.getElementById('classifierLessonFilter').value;
   const q = (document.getElementById('classifierSearch').value || '').trim().toLowerCase();
 
   return allClassifiers.filter(c => {
+    if (ver && (c.version || '2.0') !== ver) return false;
     if (hsk && c.hsk_level != hsk) return false;
     if (lessonKey) {
       const [lHsk, lNum] = lessonKey.split('-');
@@ -3477,7 +3615,7 @@ function renderClassifiersTable() {
     return `<tr style="cursor:pointer" onclick="openClassifierModal(${c.id})">
       <td>${c.id}</td>
       <td>
-        <span class="badge badge-hsk">HSK ${c.hsk_level || 1}</span>
+        ${(c.version==='3.0'?`<span class="badge badge-v3" style="font-size:10px;padding:1px 6px;margin-right:3px">3.0</span>`:`<span class="badge badge-v2" style="font-size:10px;padding:1px 6px;margin-right:3px">2.0</span>`)}<span class="badge badge-hsk">HSK ${c.hsk_level || 1}</span>
         <div style="font-size:12px;font-weight:600;color:var(--ink-soft);margin-top:2px">${escapeHtml(lessonLabel)}</div>
       </td>
       <td><span class="hanzi" style="font-size:24px;font-weight:700;color:var(--orange)">${escapeHtml(c.hanzi || '')}</span></td>
@@ -3506,11 +3644,16 @@ function openClassifierModal(id) {
   const aiInput = document.getElementById('classifierAiPasteInput');
   if (aiInput) aiInput.value = '';
 
+  const currVer = document.getElementById('classifierVersionFilter') ? document.getElementById('classifierVersionFilter').value : '';
+
   if (id) {
     const c = allClassifiers.find(x => x.id === id);
     if (!c) return;
     document.getElementById('classifierModalTitle').textContent = 'Chỉnh sửa Lượng từ';
     document.getElementById('classifierEditId').value = c.id;
+    if (document.getElementById('classifierVersionInput')) {
+      document.getElementById('classifierVersionInput').value = c.version || '2.0';
+    }
     document.getElementById('classifierHskInput').value = c.hsk_level || 1;
     document.getElementById('classifierLessonNumInput').value = c.lesson_num || 1;
     document.getElementById('classifierOrderIndexInput').value = c.order_index || 1;
@@ -3536,6 +3679,9 @@ function openClassifierModal(id) {
   } else {
     document.getElementById('classifierModalTitle').textContent = 'Thêm Lượng từ mới';
     document.getElementById('classifierEditId').value = '';
+    if (document.getElementById('classifierVersionInput')) {
+      document.getElementById('classifierVersionInput').value = currVer || '2.0';
+    }
 
     const currentHsk = document.getElementById('classifierHskFilter').value || localStorage.getItem('admin_classifier_hsk') || '1';
     document.getElementById('classifierHskInput').value = currentHsk;
@@ -4149,6 +4295,7 @@ function exportCurrentClassifierListToJson() {
 async function saveClassifier() {
   try {
     const id = document.getElementById('classifierEditId').value;
+    const version = document.getElementById('classifierVersionInput') ? document.getElementById('classifierVersionInput').value : '2.0';
     const hsk_level = parseInt(document.getElementById('classifierHskInput').value) || 1;
     const lesson_num = parseInt(document.getElementById('classifierLessonNumInput').value) || 1;
     const order_index = parseInt(document.getElementById('classifierOrderIndexInput').value) || 1;
@@ -4261,6 +4408,7 @@ async function saveClassifier() {
     }
 
     const payload = {
+      version,
       hsk_level,
       lesson_num,
       order_index,
@@ -4508,6 +4656,59 @@ function initEventListeners() {
     });
   });
 
+  // 1b. Lắng nghe thay đổi Version các trang
+  const dashVer = document.getElementById('dashVersionFilter');
+  if (dashVer) dashVer.addEventListener('change', loadDashboard);
+
+  const sVerFilter = document.getElementById('sessionVersionFilter');
+  if (sVerFilter) sVerFilter.addEventListener('change', () => { sessPage = 1; renderSessionsTable(); });
+
+  const vVerFilter = document.getElementById('vocabVersionFilter');
+  if (vVerFilter) {
+    vVerFilter.addEventListener('change', () => {
+      localStorage.setItem('vocabVersionFilter', vVerFilter.value);
+      populateVocabSessionFilter();
+      vocabPage = 1;
+      renderVocabTable();
+    });
+  }
+
+  const pVerFilter = document.getElementById('pasteVersion');
+  if (pVerFilter) {
+    pVerFilter.addEventListener('change', () => {
+      localStorage.setItem('admin_import_paste_ver', pVerFilter.value);
+      populatePasteSessionFilter();
+    });
+  }
+
+  const fVerFilter = document.getElementById('formVersion');
+  if (fVerFilter) {
+    fVerFilter.addEventListener('change', () => {
+      localStorage.setItem('admin_import_form_ver', fVerFilter.value);
+      populateFormSessionList();
+    });
+  }
+
+  const gVerFilter = document.getElementById('grammarVersionFilter');
+  if (gVerFilter) {
+    gVerFilter.addEventListener('change', () => {
+      localStorage.setItem('admin_grammar_ver', gVerFilter.value);
+      populateGrammarLessonFilter();
+      grammarPage = 1;
+      renderGrammarTable();
+    });
+  }
+
+  const cVerFilter = document.getElementById('classifierVersionFilter');
+  if (cVerFilter) {
+    cVerFilter.addEventListener('change', () => {
+      localStorage.setItem('admin_classifier_ver', cVerFilter.value);
+      populateClassifierLessonFilter();
+      classifierPage = 1;
+      renderClassifiersTable();
+    });
+  }
+
   // 2. Lưu bộ lọc HSK Ngữ pháp
   const ghskFilter = document.getElementById('grammarHskFilter');
   if (ghskFilter) {
@@ -4587,5 +4788,47 @@ function toggleDark() {
 }
 
 </script>
+
+<!-- SQL Migration Modal for HSK 3.0 -->
+<div class="modal-overlay" id="sqlMigrationModal">
+  <div class="modal" style="max-width:680px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <h3 style="margin-bottom:0">⚡ Lệnh SQL Supabase cho HSK 3.0</h3>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="closeModal('sqlMigrationModal')" style="font-weight:900;font-size:15px;line-height:1;padding:4px 9px">✕</button>
+    </div>
+    <p style="font-size:13px;color:var(--ink-soft);margin-bottom:12px;line-height:1.5">
+      Để hỗ trợ phân tách độc lập dữ liệu giữa <b>HSK 2.0</b> và <b>HSK 3.0</b>, bạn mở <b>SQL Editor</b> trên Supabase Dashboard, dán toàn bộ đoạn mã bên dưới và bấm <b>Run</b>:
+    </p>
+    <textarea id="sqlMigrationCode" readonly style="width:100%;height:180px;font-family:monospace;font-size:12px;background:#f5f0e6;padding:10px;border:var(--border-thin);border-radius:4px;resize:vertical;color:var(--ink)">-- 1. Thêm cột version cho các bảng (mặc định các buổi học hiện tại là '2.0')
+ALTER TABLE sessions ADD COLUMN IF NOT EXISTS version TEXT DEFAULT '2.0';
+UPDATE sessions SET version = '2.0' WHERE version IS NULL;
+
+ALTER TABLE grammar ADD COLUMN IF NOT EXISTS version TEXT DEFAULT '2.0';
+UPDATE grammar SET version = '2.0' WHERE version IS NULL;
+
+ALTER TABLE classifiers ADD COLUMN IF NOT EXISTS version TEXT DEFAULT '2.0';
+UPDATE classifiers SET version = '2.0' WHERE version IS NULL;
+
+-- 2. Đánh Index tối ưu truy vấn
+CREATE INDEX IF NOT EXISTS idx_sessions_version ON sessions(version);
+CREATE INDEX IF NOT EXISTS idx_grammar_version ON grammar(version);
+CREATE INDEX IF NOT EXISTS idx_classifiers_version ON classifiers(version);</textarea>
+    <div class="modal-actions" style="margin-top:14px">
+      <button class="btn btn-ghost" onclick="closeModal('sqlMigrationModal')">Đóng</button>
+      <button class="btn btn-jade" onclick="copySqlMigrationCode()">📋 Sao chép câu lệnh SQL</button>
+    </div>
+  </div>
+</div>
+
+
+function openSqlMigrationModal() {
+  const m = document.getElementById('sqlMigrationModal');
+  if (m) m.classList.add('open');
+}
+function copySqlMigrationCode() {
+  const code = document.getElementById('sqlMigrationCode').value;
+  copyTextToClipboard(code, '⚡ Đã sao chép câu lệnh SQL! Dán vào SQL Editor trên Supabase để chạy.');
+}
+
 </body>
 </html>
